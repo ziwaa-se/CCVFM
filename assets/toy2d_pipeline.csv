@@ -1,0 +1,34 @@
+target,method,L,sliced_w2
+two moons,CCVFM,1,0.0481
+two moons,CCVFM,2,0.0440
+two moons,CCVFM,4,0.0429
+two moons,CCVFM,8,0.0426
+two moons,CCVFM,16,0.0426
+two moons,Gaussian source (HRF2),1,1.3468
+two moons,Gaussian source (HRF2),2,0.6942
+two moons,Gaussian source (HRF2),4,0.3431
+two moons,Gaussian source (HRF2),8,0.1650
+two moons,Gaussian source (HRF2),16,0.0758
+two moons,Stage II (no network),0,0.0430
+spiral,CCVFM,1,0.0734
+spiral,CCVFM,2,0.0732
+spiral,CCVFM,4,0.0733
+spiral,CCVFM,8,0.0734
+spiral,CCVFM,16,0.0735
+spiral,Gaussian source (HRF2),1,1.3897
+spiral,Gaussian source (HRF2),2,0.5945
+spiral,Gaussian source (HRF2),4,0.2744
+spiral,Gaussian source (HRF2),8,0.1330
+spiral,Gaussian source (HRF2),16,0.0833
+spiral,Stage II (no network),0,0.0732
+checkerboard,CCVFM,1,0.1514
+checkerboard,CCVFM,2,0.1003
+checkerboard,CCVFM,4,0.0821
+checkerboard,CCVFM,8,0.0754
+checkerboard,CCVFM,16,0.0732
+checkerboard,Gaussian source (HRF2),1,1.5700
+checkerboard,Gaussian source (HRF2),2,0.7543
+checkerboard,Gaussian source (HRF2),4,0.3898
+checkerboard,Gaussian source (HRF2),8,0.2021
+checkerboard,Gaussian source (HRF2),16,0.1167
+checkerboard,Stage II (no network),0,0.0790

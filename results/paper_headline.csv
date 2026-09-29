@@ -1,0 +1,21 @@
+dataset,method,nfe,fid,fid_protocol,source
+MNIST,Rectified Flow,10,7.974,50k gen vs 50k train,HRF2 paper Table 7
+MNIST,Rectified Flow,100,5.563,50k gen vs 50k train,HRF2 paper Table 7
+MNIST,HRF2,10,6.644,50k gen vs 50k train,HRF2 paper Table 7
+MNIST,HRF2,100,2.588,50k gen vs 50k train,HRF2 paper Table 7
+MNIST,HRF2,500,2.574,50k gen vs 50k train,HRF2 paper Table 7
+MNIST,CCVFM,6,12.45,50k gen vs 50k train,this work Table 1
+MNIST,CCVFM,11,2.88,50k gen vs 50k train,this work Table 1
+MNIST,CCVFM,21,1.09,50k gen vs 50k train,this work Table 1
+MNIST,CCVFM,51,0.75,50k gen vs 50k train,this work Table 1
+CIFAR-10,CCVFM,11,9.66,50k gen vs 50k train,this work Table 3a
+CIFAR-10,CCVFM,21,7.24,50k gen vs 50k train,this work Table 3a
+CIFAR-10,CCVFM,51,6.35,50k gen vs 50k train,this work Table 3a
+ImageNet-32,HRF2,11,20.29,50k gen vs 50k train,HRF2 paper (quoted in this work Table 3b; same U-Net and protocol)
+ImageNet-32,HRF2,21,12.49,50k gen vs 50k train,HRF2 paper (quoted in this work Table 3b; same U-Net and protocol)
+ImageNet-32,HRF2,51,9.02,50k gen vs 50k train,HRF2 paper (quoted in this work Table 3b; same U-Net and protocol)
+ImageNet-32,CCVFM,11,12.55,50k gen vs 50k train,this work Table 3b
+ImageNet-32,CCVFM,21,9.51,50k gen vs 50k train,this work Table 3b
+ImageNet-32,CCVFM,51,8.76,50k gen vs 50k train,this work Table 3b
+CelebA-HQ 256,CCVFM-B (DiT-B),51,5.59,28k gen vs all real,this work Table 3c
+CelebA-HQ 256,CCVFM-L (DiT-L),51,4.17,28k gen vs all real,this work Table 3c

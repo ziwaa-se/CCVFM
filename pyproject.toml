@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ccvfm"
+version = "1.0.0"
+description = "Coreset-Induced Conditional Velocity Flow Matching"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Zihua She"}, {name = "Jianxi Su"}, {name = "Xiao Wang"}]
+dependencies = ["torch>=2.5", "numpy>=1.26", "scipy>=1.13", "matplotlib>=3.8"]
+
+[project.optional-dependencies]
+examples = ["torchvision>=0.20"]
+test = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["ccvfm"]

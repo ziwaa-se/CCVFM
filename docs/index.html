@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CCVFM</title>
+<meta name="description" content="Coreset-Induced Conditional Velocity Flow Matching (NeurIPS 2026): hierarchical flow matching whose inner flow starts from a closed-form coreset of the data.">
+<meta property="og:title" content="CCVFM: Coreset-Induced Conditional Velocity Flow Matching">
+<meta property="og:description" content="NeurIPS 2026. MNIST FID 0.75, CIFAR-10 6.35, ImageNet-32 8.76, CelebA-HQ 256 4.17 in 51 function evaluations.">
+<meta property="og:image" content="static/social_preview.png">
+<link rel="icon" href="static/logo_icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#fbfaf7; --surface:#f2f0ea; --plate:#ffffff; --ink:#16171a; --muted:#5d5f66; --rule:#e2dfd7;
+  --data:#3d3d3a; --noise:#2a78d6;
+  --s1:#b8480f; --s2:#2468c0; --s3:#6a5ec4;
+  --s1-mark:#eb6834; --s2-mark:#2a78d6; --s3-mark:#7a6fd0;
+  --link:#2468c0;
+  --serif:'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --display:'Unbounded', 'Arial Black', system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121316; --surface:#1b1d21; --plate:#f4f2ec; --ink:#ecebe6; --muted:#a3a4aa; --rule:#2c2e34;
+    --data:#e8e6dc; --noise:#86b6ef;
+    --s1:#f08453; --s2:#6fa6ec; --s3:#a79cf0; --link:#8fbaf2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121316; --surface:#1b1d21; --plate:#f4f2ec; --ink:#ecebe6; --muted:#a3a4aa; --rule:#2c2e34;
+  --data:#e8e6dc; --noise:#86b6ef;
+  --s1:#f08453; --s2:#6fa6ec; --s3:#a79cf0; --link:#8fbaf2;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.6;
+  padding-inline:20px;padding-block:env(safe-area-inset-top,0px) env(safe-area-inset-bottom,0px)}
+img{max-width:100%;height:auto;display:block}
+a{color:var(--link);text-underline-offset:3px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--s2);outline-offset:3px;border-radius:4px}
+.wrap{max-width:960px;margin-inline:auto}
+.prose{max-width:68ch}
+h2{font-family:var(--serif);font-weight:700;font-size:30px;line-height:1.2;margin:0;text-wrap:balance}
+h3{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.3;margin:0}
+p{margin:0}
+.label{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+section{padding-block:56px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:22px}
+
+/* hero */
+header.hero{padding-block:48px 40px;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center}
+.banner{display:flex;align-items:center;justify-content:center;gap:clamp(16px,3vw,40px);flex-wrap:wrap;width:100%}
+.stages{width:min(640px,100%);height:auto}
+.lockup{display:flex;flex-direction:column;align-items:center;gap:10px}
+.amark{width:128px;height:auto}
+.wordmark{font-family:var(--display);font-weight:700;font-size:clamp(46px,8vw,68px);letter-spacing:.04em;line-height:1}
+.wordmark .c1{color:var(--s1-mark)} .wordmark .c2{color:var(--s2-mark)} .wordmark .c3{color:var(--s3-mark)}
+.fullname{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3.4vw,34px);line-height:1.2;max-width:26ch;text-wrap:balance;margin:0}
+.fullname .k1{color:var(--s1)} .fullname .k2{color:var(--s2)} .fullname .k3{color:var(--s3)}
+.authors{display:flex;flex-direction:column;gap:4px;font-size:18px}
+.authors .names{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 18px}
+.authors .names a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--rule)}
+.authors .names a:hover{border-bottom-color:var(--ink)}
+.affil{color:var(--muted);font-size:16px}
+.venue{font-family:var(--mono);font-size:13.5px;letter-spacing:.06em;padding:6px 14px;border:1px solid var(--rule);border-radius:999px;color:var(--ink)}
+.buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:999px;background:var(--ink);color:var(--bg);
+  font-family:var(--mono);font-size:14px;font-weight:500;text-decoration:none;border:1px solid var(--ink)}
+.btn:hover{opacity:.85}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn svg{width:17px;height:17px;flex:none}
+
+/* figures */
+figure{margin:0;display:flex;flex-direction:column;gap:12px}
+.plate{background:var(--plate);border-radius:10px;padding:clamp(8px,2vw,18px);border:1px solid var(--rule)}
+figcaption{font-size:15.5px;color:var(--muted);line-height:1.5;max-width:80ch}
+figcaption b{color:var(--ink);font-weight:600}
+.tldr{font-size:21px;line-height:1.5;max-width:60ch}
+
+/* stages */
+.stagegrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.stage{padding:20px 20px 22px;background:var(--surface);border-radius:10px;display:flex;flex-direction:column;gap:10px;border-top:3px solid var(--c)}
+.stage .num{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--c);letter-spacing:.06em}
+.stage p{font-size:16.5px;line-height:1.55}
+.stage .cost{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:auto}
+.s1{--c:var(--s1)} .s2{--c:var(--s2)} .s3{--c:var(--s3)}
+
+/* numbers */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.stat{background:var(--bg);padding:18px 18px 16px;display:flex;flex-direction:column;gap:4px}
+.stat .v{font-family:var(--mono);font-size:34px;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .d{font-size:15px;color:var(--muted)}
+.samples{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.samples figure{gap:8px}
+.samples .cap{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.samples .cap b{color:var(--ink);font-weight:500}
+
+/* tables */
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;font-size:16px;min-width:520px;width:100%}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+tr.ours td{font-weight:600}
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:start}
+
+/* theory */
+.claims{display:flex;flex-direction:column;gap:14px;max-width:72ch}
+.claims li{margin:0}
+ol.claims{padding-left:1.2em}
+
+/* citation */
+.bib{position:relative;background:var(--surface);border-radius:10px;border:1px solid var(--rule)}
+.bib pre{margin:0;padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:14px;line-height:1.55;color:var(--ink)}
+.copy{position:absolute;top:10px;right:10px;min-height:36px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);
+  font-family:var(--mono);font-size:13px;cursor:pointer}
+footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--muted);font-size:15px;display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+
+@media (max-width:760px){
+  body{font-size:17px}
+  .stagegrid,.two{grid-template-columns:minmax(0,1fr)}
+  .stats,.samples{grid-template-columns:repeat(2,minmax(0,1fr))}
+  section{padding-block:40px}
+  h2{font-size:25px}
+}
+@media (prefers-reduced-motion:no-preference){ .btn{transition:opacity .15s} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+<div class="banner">
+<svg viewBox="0 0 540 140" class="stages" role="img" aria-label="CCVFM three-stage logo mark">
+<ellipse cx="48" cy="48" rx="27" ry="12" transform="rotate(-20 48 48)" style="fill: #eb6834; opacity: 0.14"></ellipse>
+<ellipse cx="100" cy="86" rx="21" ry="9.5" transform="rotate(16 100 86)" style="fill: #eb6834; opacity: 0.14"></ellipse>
+<ellipse cx="132" cy="40" rx="15" ry="7" transform="rotate(-32 132 40)" style="fill: #eb6834; opacity: 0.14"></ellipse>
+<ellipse cx="48" cy="48" rx="27" ry="12" transform="rotate(-20 48 48)" style="fill: none; stroke: #eb6834; stroke-width: 1.2; opacity: 0.65"></ellipse>
+<ellipse cx="100" cy="86" rx="21" ry="9.5" transform="rotate(16 100 86)" style="fill: none; stroke: #eb6834; stroke-width: 1.2; opacity: 0.65"></ellipse>
+<ellipse cx="132" cy="40" rx="15" ry="7" transform="rotate(-32 132 40)" style="fill: none; stroke: #eb6834; stroke-width: 1.2; opacity: 0.65"></ellipse>
+<circle cx="30" cy="40" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="36" cy="58" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="44" cy="34" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="60" cy="42" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="64" cy="56" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="22" cy="54" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="54" cy="64" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="86" cy="80" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="92" cy="97" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="110" cy="78" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="116" cy="93" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="104" cy="100" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="124" cy="32" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="142" cy="46" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="138" cy="29" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="128" cy="50" r="1.6" style="fill: var(--data); opacity: 0.6"></circle>
+<circle cx="48" cy="48" r="8.5" style="fill: #eb6834; stroke: var(--bg); stroke-width: 2.2"></circle>
+<circle cx="100" cy="86" r="6.5" style="fill: #eb6834; stroke: var(--bg); stroke-width: 2.2"></circle>
+<circle cx="132" cy="40" r="5" style="fill: #eb6834; stroke: var(--bg); stroke-width: 2.2"></circle>
+<path d="M166 62 L 174 70 L 166 78" style="fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6"></path>
+<circle cx="196" cy="88" r="1.3" style="fill: #2a78d6; opacity: 0.45"></circle>
+<circle cx="200" cy="106" r="1.1" style="fill: #2a78d6; opacity: 0.4"></circle>
+<circle cx="214" cy="104" r="1.2" style="fill: #2a78d6; opacity: 0.4"></circle>
+<circle cx="194" cy="100" r="1.3" style="fill: #2a78d6; opacity: 0.45"></circle>
+<circle cx="212" cy="88" r="1.1" style="fill: #2a78d6; opacity: 0.4"></circle>
+<circle cx="220" cy="98" r="1.2" style="fill: #2a78d6; opacity: 0.4"></circle>
+<ellipse cx="262" cy="40" rx="21.6" ry="9.6" transform="rotate(-20 262 40)" style="fill: #eb6834; opacity: 0.14"></ellipse>
+<ellipse cx="304" cy="70" rx="16.8" ry="7.6" transform="rotate(16 304 70)" style="fill: #eb6834; opacity: 0.14"></ellipse>
+<ellipse cx="329" cy="34" rx="12" ry="5.6" transform="rotate(-32 329 34)" style="fill: #eb6834; opacity: 0.14"></ellipse>
+<ellipse cx="262" cy="40" rx="21.6" ry="9.6" transform="rotate(-20 262 40)" style="fill: none; stroke: #eb6834; stroke-width: 1.1; opacity: 0.6"></ellipse>
+<ellipse cx="304" cy="70" rx="16.8" ry="7.6" transform="rotate(16 304 70)" style="fill: none; stroke: #eb6834; stroke-width: 1.1; opacity: 0.6"></ellipse>
+<ellipse cx="329" cy="34" rx="12" ry="5.6" transform="rotate(-32 329 34)" style="fill: none; stroke: #eb6834; stroke-width: 1.1; opacity: 0.6"></ellipse>
+<circle cx="262" cy="40" r="2.4" style="fill: #eb6834; opacity: 0.8"></circle>
+<circle cx="304" cy="70" r="2" style="fill: #eb6834; opacity: 0.8"></circle>
+<circle cx="329" cy="34" r="1.7" style="fill: #eb6834; opacity: 0.8"></circle>
+<path d="M211 93 L 250 44 M211 94 L 264 38 M212 94 L 273 46 M212 96 L 296 70 M212 97 L 311 74 M211 94 L 326 37" style="fill: none; stroke: #2a78d6; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 5 4"></path>
+<path d="M249.2 39.2 L 254.8 44.8 M249.2 44.8 L 254.8 39.2 M261.2 33.2 L 266.8 38.8 M261.2 38.8 L 266.8 33.2 M269.2 41.2 L 274.8 46.8 M269.2 46.8 L 274.8 41.2 M295.2 65.2 L 300.8 70.8 M295.2 70.8 L 300.8 65.2 M309.2 69.2 L 314.8 74.8 M309.2 74.8 L 314.8 69.2 M325.2 32.2 L 330.8 37.8 M325.2 37.8 L 330.8 32.2" style="fill: none; stroke: #2a78d6; stroke-width: 2.2; stroke-linecap: round"></path>
+<circle cx="206" cy="98" r="6" style="fill: var(--bg); stroke: #2a78d6; stroke-width: 2.4"></circle>
+<path d="M356 62 L 364 70 L 356 78" style="fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.6"></path>
+<circle cx="436" cy="24" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<circle cx="460" cy="36" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<circle cx="470" cy="48" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<circle cx="476" cy="62" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<circle cx="470" cy="90" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<circle cx="460" cy="102" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<circle cx="436" cy="114" r="1.6" style="fill: var(--data); opacity: 0.35"></circle>
+<path d="M400.5 30.5 L 407.5 37.5 M400.5 37.5 L 407.5 30.5" style="fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round"></path>
+<path d="M408.5 72.5 L 415.5 79.5 M408.5 79.5 L 415.5 72.5" style="fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round"></path>
+<path d="M398.5 102.5 L 405.5 109.5 M398.5 109.5 L 405.5 102.5" style="fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round"></path>
+<path d="M409 33 Q 426 22 443 27" style="fill: none; stroke: #7a6fd0; stroke-width: 3; stroke-linecap: round"></path>
+<path d="M417 76 Q 442 90 468 76" style="fill: none; stroke: #7a6fd0; stroke-width: 3; stroke-linecap: round"></path>
+<path d="M407 105 Q 426 96 441 106" style="fill: none; stroke: #7a6fd0; stroke-width: 3; stroke-linecap: round"></path>
+<path d="M436.6 20.5 L 443 27 L 434 29.1" style="fill: none; stroke: #7a6fd0; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round"></path>
+<path d="M458.9 74.8 L 468 76 L 463.1 82.7" style="fill: none; stroke: #7a6fd0; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round"></path>
+<path d="M436.9 97.9 L 441 106 L 431.9 105.3" style="fill: none; stroke: #7a6fd0; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round"></path>
+<circle cx="448" cy="28" r="4" style="fill: var(--ink)"></circle>
+<circle cx="476" cy="76" r="4" style="fill: var(--ink)"></circle>
+<circle cx="448" cy="110" r="4" style="fill: var(--ink)"></circle>
+<text x="84" y="134" style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-anchor: middle; fill: var(--muted)"><tspan style="fill: #eb6834; font-weight: 500">I</tspan> coreset</text>
+<text x="270" y="134" style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-anchor: middle; fill: var(--muted)"><tspan style="fill: #2a78d6; font-weight: 500">II</tspan> closed-form velocity law</text>
+<text x="446" y="134" style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; text-anchor: middle; fill: var(--muted)"><tspan style="fill: #7a6fd0; font-weight: 500">III</tspan> learned correction</text>
+</svg>
+<div class="lockup">
+<svg viewBox="0 0 160 120" class="amark" role="img" aria-label="CCVFM mark">
+<defs>
+<linearGradient id="streamW" x1="0" y1="0" x2="1" y2="0.3">
+<stop offset="0" style="stop-color: #2a78d6"></stop>
+<stop offset="0.55" style="stop-color: #7a6fd0"></stop>
+<stop offset="1" style="stop-color: #eb6834"></stop>
+</linearGradient>
+</defs>
+<circle cx="10" cy="22" r="2.2" style="fill: var(--noise); opacity: 0.55"></circle>
+<circle cx="22" cy="12" r="1.6" style="fill: var(--noise); opacity: 0.4"></circle>
+<circle cx="6" cy="44" r="1.8" style="fill: var(--noise); opacity: 0.45"></circle>
+<circle cx="24" cy="36" r="2.4" style="fill: var(--noise); opacity: 0.6"></circle>
+<circle cx="14" cy="60" r="2" style="fill: var(--noise); opacity: 0.5"></circle>
+<circle cx="30" cy="54" r="1.4" style="fill: var(--noise); opacity: 0.35"></circle>
+<circle cx="8" cy="78" r="2.2" style="fill: var(--noise); opacity: 0.5"></circle>
+<circle cx="26" cy="84" r="1.7" style="fill: var(--noise); opacity: 0.4"></circle>
+<circle cx="14" cy="100" r="2.4" style="fill: var(--noise); opacity: 0.55"></circle>
+<circle cx="30" cy="108" r="1.5" style="fill: var(--noise); opacity: 0.35"></circle>
+<path d="M24 36 C 58 14, 92 20, 112 30" style="fill: none; stroke: url(#streamW); stroke-width: 4; stroke-linecap: round"></path>
+<path d="M14 60 C 56 74, 100 58, 128 66" style="fill: none; stroke: url(#streamW); stroke-width: 4; stroke-linecap: round"></path>
+<path d="M14 100 C 52 108, 84 100, 106 96" style="fill: none; stroke: url(#streamW); stroke-width: 4; stroke-linecap: round"></path>
+<path d="M10 22 C 50 4, 90 12, 112 28" style="fill: none; stroke: url(#streamW); stroke-width: 1.6; stroke-linecap: round; opacity: 0.45"></path>
+<path d="M8 78 C 54 92, 96 72, 128 70" style="fill: none; stroke: url(#streamW); stroke-width: 1.6; stroke-linecap: round; opacity: 0.45"></path>
+<circle cx="124" cy="32" r="15" style="fill: #eb6834; stroke: var(--bg); stroke-width: 3"></circle>
+<circle cx="124" cy="32" r="5" style="fill: var(--bg); opacity: 0.9"></circle>
+<circle cx="140" cy="68" r="11" style="fill: #eb6834; stroke: var(--bg); stroke-width: 3"></circle>
+<circle cx="116" cy="97" r="7.5" style="fill: #eb6834; stroke: var(--bg); stroke-width: 3"></circle>
+</svg>
+<div class="wordmark" aria-label="CCVFM"><span class="c1">C</span><span class="c2">CV</span><span class="c3">FM</span></div>
+</div>
+</div>
+<h1 class="fullname"><span class="k1">Coreset</span>-Induced <span class="k2">Conditional Velocity</span> <span class="k3">Flow Matching</span></h1>
+<div class="authors">
+<div class="names">
+<a href="mailto:she8@purdue.edu">Zihua She</a>
+<a href="mailto:jianxi@purdue.edu">Jianxi Su</a>
+<a href="mailto:wangxiao@purdue.edu">Xiao Wang</a>
+</div>
+<div class="affil">Department of Statistics, Purdue University</div>
+</div>
+<div class="venue">NeurIPS 2026</div>
+<nav class="buttons" aria-label="Paper links">
+<a class="btn" href="https://arxiv.org/abs/2605.12951"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6"></path><path d="M8 13h8M8 17h5"></path></svg>Paper</a>
+<a class="btn" href="https://arxiv.org/pdf/2605.12951"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>PDF</a>
+<a class="btn" href="https://github.com/ziwaa-se/CCVFM"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5"></path><path d="M16 7l5 5-5 5"></path></svg>Code</a>
+<a class="btn ghost" href="#citation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h4v4H7zM13 7h4v4h-4z"></path><path d="M9 11c0 3-1 5-3 6M15 11c0 3-1 5-3 6"></path></svg>BibTeX</a>
+</nav>
+</header>
+
+<figure>
+<div class="plate"><img src="static/method.png" alt="Three panels: (a) two Gaussian clusters summarised by two weighted coreset atoms; (b) samples from noise connected by straight velocity segments to endpoints near the clusters; (c) Stage II endpoints corrected onto the clusters." width="2654" height="1009"></div>
+<figcaption><b>CCVFM in one picture.</b> (a) Stage I summarises the data by weighted coreset atoms. (b) Stage II draws velocities from the induced conditional law in closed form, with no network. (c) Stage III learns only the small correction that remains.</figcaption>
+</figure>
+
+<section aria-labelledby="abstract">
+<span class="label" id="abstract">Abstract</span>
+<p class="tldr prose">Hierarchical flow matching models the full conditional law of the velocity, but its inner flow starts from pure Gaussian noise and must learn an entire noise-to-data transport. CCVFM starts that inner flow from a closed-form coreset of the data instead, so the network only has to learn a small correction.</p>
+<p class="prose">We propose Coreset-Induced Conditional Velocity Flow Matching (CCVFM), a generative model that augments hierarchical rectified flow with a data-informed source distribution. CCVFM first compresses the target into weighted atoms using an entropic Sinkhorn coreset and lifts them to a Gaussian mixture. The induced conditional velocity law is then a closed-form Gaussian mixture that can be sampled without a learned neural sampler. A lightweight correction flow, trained from this surrogate source, refines the remaining surrogate-to-target residual rather than learning an entire noise-to-data map. We prove that the surrogate transport cost equals the target–surrogate Wasserstein gap under an explicit compression assumption, whereas the noise-source analogue has a dimension-scale lower bound. On MNIST, CIFAR-10, ImageNet-32 and CelebA-HQ 256, CCVFM reaches competitive few-step generation under matched architectures.</p>
+</section>
+
+<section aria-labelledby="method">
+<span class="label">Method</span>
+<h2 id="method">Three stages, and only the last one is learned</h2>
+<div class="stagegrid">
+<div class="stage s1">
+<span class="num">STAGE I · CORESET</span>
+<h3>Compress the data, then lift to a mixture</h3>
+<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Closed-form probabilistic PCA lifts each atom to a Gaussian <i>N</i>(μ<sub>k</sub>, L<sub>k</sub>L<sub>k</sub><sup>⊤</sup>+σ²I), giving the surrogate ρ̃<sub>1</sub>.</p>
+<span class="cost">No network · 95 s for CIFAR-10 at K = 10,000</span>
+</div>
+<div class="stage s2">
+<span class="num">STAGE II · CLOSED-FORM VELOCITY LAW</span>
+<h3>Read off the velocity law, no training</h3>
+<p>Plugging ρ̃<sub>1</sub> into the conditional velocity identity gives an explicit <i>K</i>-component mixture π̃(v | x<sub>t</sub>, t). At t = 0 it is ρ̃<sub>1</sub>(x<sub>0</sub>+v): one categorical draw and one Gaussian draw.</p>
+<span class="cost">No network · one closed-form draw</span>
+</div>
+<div class="stage s3">
+<span class="num">STAGE III · LEARNED CORRECTION</span>
+<h3>Learn only the residual</h3>
+<p>A correction network is trained by flow matching in velocity space, with the source drawn from π̃ and anchored to the mixture component of each training image. It refines a surrogate-to-target residual, not a noise-to-data map.</p>
+<span class="cost">The only learned part · L Euler steps at sampling</span>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="results">
+<span class="label">Results</span>
+<h2 id="results">Strong few-step generation from a better source</h2>
+<div class="stats">
+<div class="stat"><span class="v">0.75</span><span class="d">MNIST · FID<sub>50k</sub></span></div>
+<div class="stat"><span class="v">6.35</span><span class="d">CIFAR-10 · FID<sub>50k</sub></span></div>
+<div class="stat"><span class="v">8.76</span><span class="d">ImageNet-32 · FID<sub>50k</sub></span></div>
+<div class="stat"><span class="v">4.17</span><span class="d">CelebA-HQ 256 · FID</span></div>
+</div>
+<p class="prose">All four numbers use 51 function evaluations (50 correction steps plus the closed-form draw) and no classifier-free guidance.</p>
+<div class="samples">
+<figure><div class="plate"><img src="static/samples_mnist_nfe51.png" alt="Uncurated MNIST samples" loading="lazy"></div><span class="cap"><b>MNIST</b> 28×28</span></figure>
+<figure><div class="plate"><img src="static/samples_cifar10_nfe51.png" alt="Uncurated CIFAR-10 samples" loading="lazy"></div><span class="cap"><b>CIFAR-10</b> 32×32</span></figure>
+<figure><div class="plate"><img src="static/samples_imagenet32_nfe51.png" alt="Uncurated ImageNet-32 samples" loading="lazy"></div><span class="cap"><b>ImageNet-32</b> 32×32</span></figure>
+<figure><div class="plate" style="display:flex;align-items:center;height:100%"><img src="static/samples_celebahq256_nfe51.png" alt="Uncurated CelebA-HQ 256 samples" loading="lazy"></div><span class="cap"><b>CelebA-HQ</b> 256×256</span></figure>
+</div>
+<figure>
+<div class="plate"><img src="static/fid_vs_nfe.png" alt="FID versus number of function evaluations. Left: MNIST, CCVFM reaches 0.75 at 51 NFE while HRF2 reaches 2.57 at 500 NFE. Right: ImageNet-32, CCVFM is 38 percent and 24 percent lower than HRF2 at 11 and 21 NFE." loading="lazy"></div>
+<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2 and only the source changes: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>
+</figure>
+</section>
+
+<section aria-labelledby="ablation">
+<span class="label">Ablation</span>
+<h2 id="ablation">The source is what matters</h2>
+<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST. The only change is where the inner flow starts.</p>
+<div class="two">
+<figure><div class="plate"><img src="static/source_ablation.png" alt="FID versus NFE on MNIST for the coreset surrogate source and the Gaussian source" loading="lazy"></div></figure>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Inner-flow source</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>
+<tbody>
+<tr><td>Gaussian N(0, I) (HRF2), 2 seeds</td><td>17.17</td><td>10.74</td><td>9.94</td></tr>
+<tr class="ours"><td>Coreset surrogate (CCVFM), 5 seeds</td><td>3.25 ± 0.32</td><td>2.60 ± 0.21</td><td>2.86 ± 0.36</td></tr>
+</tbody>
+</table>
+<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better. The regression target shrinks accordingly: at t = 0, E‖V<sub>1</sub>−V<sub>0</sub>‖² is 1655 with the Gaussian source and 36 with CCVFM on MNIST (45× smaller), and 6929 vs 468 on CIFAR-10.</p>
+</div>
+</div>
+<figure>
+<div class="plate"><img src="static/toy2d_pipeline.png" alt="Three 2D targets (two moons, spiral, checkerboard): coreset atoms, Stage II samples, CCVFM samples at 2 steps, Gaussian-source samples at 2 steps, and sliced Wasserstein distance versus steps." loading="lazy"></div>
+<figcaption><b>The same story in 2D.</b> With 1–2 network evaluations, CCVFM is 7–28× closer to the target (sliced W<sub>2</sub>) than the same network trained from a Gaussian source. Reproduce with <code>python examples/toy2d.py</code>.</figcaption>
+</figure>
+</section>
+
+<section aria-labelledby="theory">
+<span class="label">Theory</span>
+<h2 id="theory">Why a coreset source helps</h2>
+<ol class="claims">
+<li><b>Transport-task reduction.</b> At the generation boundary, the task left to the correction network is exactly the surrogate gap W<sub>2</sub>(ρ<sub>1</sub>, ρ̃<sub>1</sub>), which is O(K<sup>−1/d</sup>) under the Stage I compression assumption. With a Gaussian source the same task is bounded below by √d(√(σ<sub>1</sub>²+1)−1), a constant however large K or n is.</li>
+<li><b>Fewer Euler steps.</b> The number of Euler steps needed for a given discretisation error scales with the square of that task size, so a smaller surrogate gap directly buys lower NFE.</li>
+<li><b>A smaller regression target.</b> The conditional second moment of V<sub>1</sub>−V<sub>0</sub> under the surrogate source depends on within-mode quantities; the Gaussian source pays the cross-mode diameter plus d.</li>
+</ol>
+</section>
+
+<section aria-labelledby="citation">
+<span class="label">Citation</span>
+<h2 id="citation">BibTeX</h2>
+<div class="bib">
+<button class="copy" id="copy-bib" type="button">Copy</button>
+<pre id="bibtex">@inproceedings{she2026ccvfm,
+  title     = {Coreset-Induced Conditional Velocity Flow Matching},
+  author    = {She, Zihua and Su, Jianxi and Wang, Xiao},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2026},
+  note      = {arXiv:2605.12951}
+}</pre>
+</div>
+</section>
+
+<footer>
+<span>Code, reproduction scripts and results: <a href="https://github.com/ziwaa-se/CCVFM">github.com/ziwaa-se/CCVFM</a></span>
+<span>MIT License</span>
+</footer>
+</div>
+<script>
+(function(){
+  var btn=document.getElementById('copy-bib'), pre=document.getElementById('bibtex');
+  if(!btn||!pre) return;
+  function selectText(){var r=document.createRange();r.selectNodeContents(pre);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}
+  btn.addEventListener('click',function(){
+    var text=pre.textContent;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){btn.textContent='Copied';setTimeout(function(){btn.textContent='Copy';},1600);},
+        function(){selectText();btn.textContent='Press Ctrl+C';});
+    } else { selectText(); btn.textContent='Press Ctrl+C'; }
+  });
+})();
+</script>
+</body>
+</html>

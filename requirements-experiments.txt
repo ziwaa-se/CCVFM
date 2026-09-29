@@ -1,0 +1,8 @@
+-r requirements.txt
+torchvision>=0.20
+Pillow>=10
+tqdm>=4.66
+diffusers>=0.30        # DC-AE (CelebA-HQ) and SD-VAE helpers
+datasets>=2.20         # ImageNet-32 and CelebA-HQ from the Hugging Face Hub
+huggingface_hub>=0.24
+pytest>=7

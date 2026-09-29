@@ -1,0 +1,26 @@
+<defs>
+<linearGradient id="streamW" x1="0" y1="0" x2="1" y2="0.3">
+<stop offset="0" style="stop-color: #2a78d6"></stop>
+<stop offset="0.55" style="stop-color: #7a6fd0"></stop>
+<stop offset="1" style="stop-color: #eb6834"></stop>
+</linearGradient>
+</defs>
+<circle cx="10" cy="22" r="2.2" style="fill: @NOISE@; opacity: 0.55"></circle>
+<circle cx="22" cy="12" r="1.6" style="fill: @NOISE@; opacity: 0.4"></circle>
+<circle cx="6" cy="44" r="1.8" style="fill: @NOISE@; opacity: 0.45"></circle>
+<circle cx="24" cy="36" r="2.4" style="fill: @NOISE@; opacity: 0.6"></circle>
+<circle cx="14" cy="60" r="2" style="fill: @NOISE@; opacity: 0.5"></circle>
+<circle cx="30" cy="54" r="1.4" style="fill: @NOISE@; opacity: 0.35"></circle>
+<circle cx="8" cy="78" r="2.2" style="fill: @NOISE@; opacity: 0.5"></circle>
+<circle cx="26" cy="84" r="1.7" style="fill: @NOISE@; opacity: 0.4"></circle>
+<circle cx="14" cy="100" r="2.4" style="fill: @NOISE@; opacity: 0.55"></circle>
+<circle cx="30" cy="108" r="1.5" style="fill: @NOISE@; opacity: 0.35"></circle>
+<path d="M24 36 C 58 14, 92 20, 112 30" style="fill: none; stroke: url(#streamW); stroke-width: 4; stroke-linecap: round"></path>
+<path d="M14 60 C 56 74, 100 58, 128 66" style="fill: none; stroke: url(#streamW); stroke-width: 4; stroke-linecap: round"></path>
+<path d="M14 100 C 52 108, 84 100, 106 96" style="fill: none; stroke: url(#streamW); stroke-width: 4; stroke-linecap: round"></path>
+<path d="M10 22 C 50 4, 90 12, 112 28" style="fill: none; stroke: url(#streamW); stroke-width: 1.6; stroke-linecap: round; opacity: 0.45"></path>
+<path d="M8 78 C 54 92, 96 72, 128 70" style="fill: none; stroke: url(#streamW); stroke-width: 1.6; stroke-linecap: round; opacity: 0.45"></path>
+<circle cx="124" cy="32" r="15" style="fill: #eb6834; stroke: @BG@; stroke-width: 3"></circle>
+<circle cx="124" cy="32" r="5" style="fill: @BG@; opacity: 0.9"></circle>
+<circle cx="140" cy="68" r="11" style="fill: #eb6834; stroke: @BG@; stroke-width: 3"></circle>
+<circle cx="116" cy="97" r="7.5" style="fill: #eb6834; stroke: @BG@; stroke-width: 3"></circle>

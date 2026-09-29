@@ -1,0 +1,2 @@
+dataset,n,d,K,rank,ems_s,cov_s,total_s,peak_mem_gb
+imagenet32,1281167,3072,5000,60,182,168,350,22.87

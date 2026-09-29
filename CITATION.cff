@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+title: "CCVFM: Coreset-Induced Conditional Velocity Flow Matching"
+authors:
+  - family-names: She
+    given-names: Zihua
+  - family-names: Su
+    given-names: Jianxi
+  - family-names: Wang
+    given-names: Xiao
+license: MIT
+repository-code: "https://github.com/ziwaa-se/CCVFM"
+preferred-citation:
+  type: conference-paper
+  title: "Coreset-Induced Conditional Velocity Flow Matching"
+  authors:
+    - family-names: She
+      given-names: Zihua
+    - family-names: Su
+      given-names: Jianxi
+    - family-names: Wang
+      given-names: Xiao
+  collection-title: "Advances in Neural Information Processing Systems (NeurIPS)"
+  year: 2026
+  identifiers:
+    - type: other
+      value: "arXiv:2605.12951"
