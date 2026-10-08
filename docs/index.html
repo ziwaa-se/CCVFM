@@ -324,16 +324,77 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <thead><tr><th>Inner-flow source</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>
 <tbody>
 <tr><td>Gaussian N(0, I) (HRF2), 2 seeds</td><td>17.17</td><td>10.74</td><td>9.94</td></tr>
-<tr class="ours"><td>Coreset surrogate (CCVFM), 5 seeds</td><td>3.25 ± 0.32</td><td>2.60 ± 0.21</td><td>2.86 ± 0.36</td></tr>
+<tr class="ours"><td>Coreset surrogate (CCVFM), 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>
 </tbody>
 </table>
-<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better. The regression target shrinks accordingly: at t = 0, E‖V<sub>1</sub>−V<sub>0</sub>‖² is 1655 with the Gaussian source and 36 with CCVFM on MNIST (45× smaller), and 6929 vs 468 on CIFAR-10.</p>
+<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better. Theorem 3 explains the gap: the surrogate source leaves only a surrogate-to-target residual to learn (see the checks below).</p>
 </div>
 </div>
 <figure>
 <div class="plate"><img src="static/toy2d_pipeline.png" alt="Three 2D targets (two moons, spiral, checkerboard): coreset atoms, Stage II samples, CCVFM samples at 2 steps, Gaussian-source samples at 2 steps, and sliced Wasserstein distance versus steps." loading="lazy"></div>
 <figcaption><b>The same story in 2D.</b> With 1–2 network evaluations, CCVFM is 7–28× closer to the target (sliced W<sub>2</sub>) than the same network trained from a Gaussian source. Reproduce with <code>python examples/toy2d.py</code>.</figcaption>
 </figure>
+</section>
+
+<section aria-labelledby="review">
+<span class="label">From the review</span>
+<h2 id="review">Checks added during peer review</h2>
+<p class="prose">Experiments from our public responses to the NeurIPS 2026 reviewers. Lightweight budgets, so absolute values are not comparable to the main tables. Code: <a href="https://github.com/ziwaa-se/CCVFM/tree/main/experiments/rebuttal"><code>experiments/rebuttal/</code></a>.</p>
+<h3>Both identities of Theorem 3 hold numerically</h3>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Dataset (d)</th><th>Surrogate</th><th>Thm 3(i)</th><th>Gaussian</th><th>Thm 3(ii)</th><th>Ratio</th></tr></thead>
+<tbody>
+<tr><td>ring-6 (2)</td><td>8.171</td><td>8.158</td><td>8.088</td><td>8.074</td><td>1.0</td></tr>
+<tr><td>moons (2)</td><td>9.400</td><td>9.426</td><td>9.618</td><td>9.618</td><td>1.0</td></tr>
+<tr><td>pinwheel (2)</td><td>4.993</td><td>4.988</td><td>6.508</td><td>6.486</td><td>1.3</td></tr>
+<tr><td>checkerboard (2)</td><td>5.307</td><td>5.318</td><td>6.683</td><td>6.672</td><td>1.3</td></tr>
+<tr><td>helix (3)</td><td>4.668</td><td>4.677</td><td>8.344</td><td>8.344</td><td>1.8</td></tr>
+<tr class="ours"><td>MNIST (784)</td><td>105.5</td><td>105.4</td><td>1655.2</td><td>1655.6</td><td>15.7</td></tr>
+<tr class="ours"><td>CIFAR-10 (3072)</td><td>1528.4</td><td>1523.2</td><td>6929.2</td><td>6929.0</td><td>4.5</td></tr>
+</tbody>
+</table>
+</div>
+<p class="prose" style="font-size:16px;color:var(--muted)">Monte-Carlo estimates of E‖V<sub>1</sub>−V<sub>0</sub>‖² at t = 0 agree with both closed forms to 0.03–0.3%. On images the surrogate source shrinks the regression target 16× (MNIST) and 4.5× (CIFAR-10).</p>
+<div class="two">
+<div style="display:flex;flex-direction:column;gap:12px">
+<h3>The low-rank covariance saturates near r = 50</h3>
+<div class="tablewrap">
+<table style="min-width:360px">
+<thead><tr><th>r</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>
+<tbody>
+<tr><td>10</td><td>3.18</td><td>3.47</td><td>4.35</td></tr>
+<tr><td>30</td><td>3.25</td><td>2.60</td><td>2.86</td></tr>
+<tr><td>50</td><td>3.14</td><td>2.38</td><td>2.60</td></tr>
+<tr><td>200</td><td>3.22</td><td>2.36</td><td>2.64</td></tr>
+<tr><td>784</td><td>2.90</td><td>2.40</td><td>2.82</td></tr>
+</tbody>
+</table>
+</div>
+<p style="font-size:15.5px;color:var(--muted)">MNIST FID<sub>50k</sub>, mean over 3 training seeds (5 for r = 30).</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px">
+<h3>Compression follows an effective dimension</h3>
+<div class="tablewrap">
+<table style="min-width:360px">
+<thead><tr><th>Target</th><th>Slope in K</th><th>Reading</th></tr></thead>
+<tbody>
+<tr><td>thin circle</td><td>−0.503</td><td>K<sup>−1/2</sup></td></tr>
+<tr><td>two moons</td><td>−0.467</td><td>K<sup>−1/2</sup></td></tr>
+<tr><td>helix (3D)</td><td>−0.44</td><td>steeper than −1/3</td></tr>
+<tr><td>MNIST</td><td>−0.162</td><td>d<sub>eff</sub> ≈ 12</td></tr>
+<tr><td>CIFAR-10</td><td>−0.136</td><td>d<sub>eff</sub> ≈ 15</td></tr>
+</tbody>
+</table>
+</div>
+<p style="font-size:15.5px;color:var(--muted)">Sliced W<sub>2</sub> on low-dimensional targets; transport-cost proxy on images (nominal d = 784 / 3072).</p>
+</div>
+</div>
+<ul class="claims" style="padding-left:1.2em">
+<li><b>A KDE source (K = n) loses the low-NFE regime:</b> FID 68–82 at 6 NFE, seed-unstable at 21 NFE (2.1 vs 34.9), and samples sit 13% closer to training than to held-out data, against 5% for the coreset surrogate.</li>
+<li><b>Stage I is cheap:</b> 10 s on MNIST (K = 2,000), 95 s on CIFAR-10 (K = 10,000) and 350 s on all 1.28M ImageNet-32 images (K = 5,000) on one GPU, under 1% of training time.</li>
+<li><b>Error bars:</b> 5 sampling seeds give MNIST FID<sub>50k</sub> 0.772 ± 0.011 at 51 NFE; re-training with a new seed gives 0.747.</li>
+</ul>
 </section>
 
 <section aria-labelledby="theory">

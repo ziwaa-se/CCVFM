@@ -123,6 +123,110 @@ def ems_coreset_gpu(x_np, K, lam, nit, rg, chunk_n=None):
 # Stage I: Vectorized low-rank covariance training
 # ===================================================================
 
+def learn_lowrank_cov_ppca(x_np, mu, T_np, rank, weights=None,
+                            data_batch=None, svd_niter=4, s2_floor=1e-6):
+    """Closed-form PPCA covariance fit per GMM component.
+
+    For each component b, the soft-assignment-weighted empirical covariance
+        S_b = (1/n_b) sum_i T_{ib} (x_i - mu_b)(x_i - mu_b)^T
+    is decomposed via the Tipping-Bishop PPCA MLE:
+        sigma_b^2 = (tr S_b - sum_{j=1}^r lambda_j) / (d - r)
+        L_b       = U_r diag(sqrt(max(lambda_j - sigma_b^2, 0)))
+    where (lambda_j, U_r) are the top-r eigenvalues / eigenvectors of S_b.
+    The top-r eigendecomposition is computed via randomized SVD on the
+    weighted data matrix W_b (sqrt(T_{ib}/n_b) (x_i - mu_b)), avoiding
+    the O(d^3) full eigendecomposition.
+
+    Returns:
+      L_all  : (K, d, rank) numpy
+      sigma2 : scalar shared noise variance = sum_b w_b sigma_b^2
+               (weighted mean of per-component PPCA noise estimates)
+    """
+    K, d = mu.shape
+    n = len(x_np)
+
+    import gc; gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # Push x and centers to GPU once (~15 GB for ImageNet-32). The full
+    # responsibility T_np (n, K) is kept on CPU and streamed column-by-column
+    # to avoid the K*n*4 byte explosion (51 GB at K=10000, n=1.28M).
+    x_gpu = torch.tensor(x_np, dtype=torch.float32, device=DEVICE)      # (n, d)
+    c_gpu = torch.tensor(mu, dtype=torch.float32, device=DEVICE)        # (K, d)
+    # T_np stays on host; the b-th column is .to(DEVICE) per iteration.
+    if weights is None:
+        # Compute column sums on host without ever materialising T on GPU.
+        col_sums = T_np.sum(axis=0)
+        w_gpu = torch.tensor(col_sums / max(col_sums.sum(), 1e-12),
+                              dtype=torch.float32, device=DEVICE)
+    else:
+        w_arr = np.asarray(weights, dtype=np.float32)
+        w_gpu = torch.tensor(w_arr / max(w_arr.sum(), 1e-12),
+                              dtype=torch.float32, device=DEVICE)
+
+    # Build L_all on CPU to avoid a (K, d, r) GPU allocation when K*d*r is
+    # large (K=10000, d=3072, r=80 -> ~9.8 GB).
+    L_all_cpu = torch.zeros(K, d, rank, dtype=torch.float32)
+    sigma2_per = torch.zeros(K, device=DEVICE)
+
+    chunk = 65536  # for streaming trace; keeps peak memory low
+    t0 = time.time()
+    for b in range(K):
+        # Stream the b-th responsibility column to GPU (n * 4 bytes = 5 MB
+        # at n=1.28M). This is the only per-component host->device transfer.
+        rb_np = T_np[:, b]
+        rb = torch.tensor(rb_np, dtype=torch.float32, device=DEVICE)
+        mass = rb.sum() + 1e-12
+
+        # Streaming trace of weighted empirical covariance: never
+        # materialise the full (n, d) weighted-diff tensor.
+        trace_S = torch.zeros((), device=DEVICE)
+        for s in range(0, n, chunk):
+            e = min(s + chunk, n)
+            d_chunk = x_gpu[s:e] - c_gpu[b]                 # (cs, d)
+            nsq = (d_chunk * d_chunk).sum(dim=1)            # (cs,)
+            trace_S = trace_S + (rb[s:e] * nsq).sum() / mass
+            del d_chunk, nsq
+
+        # Top-r SVD on the high-weight subset (top 2000): bounded memory
+        # (2000 * d * 4 = ~25 MB at d=3072).
+        top_n = min(2000, n)
+        top_idx = torch.argsort(rb, descending=True)[:top_n]
+        sqrt_r_top = torch.sqrt(rb[top_idx] / mass).unsqueeze(1)
+        W_top = sqrt_r_top * (x_gpu[top_idx] - c_gpu[b])
+        _, S_lr, V_lr = torch.svd_lowrank(W_top, q=rank, niter=svd_niter)
+        del W_top, sqrt_r_top
+
+        lambdas_top = S_lr * S_lr  # (rank,)
+        if d > rank:
+            sigma2_b = (trace_S - lambdas_top.sum()) / (d - rank)
+        else:
+            sigma2_b = torch.tensor(0.0, device=DEVICE)
+        sigma2_b = sigma2_b.clamp(min=s2_floor)
+        Lambda_r = (lambdas_top - sigma2_b).clamp(min=0.0)
+        L_b = V_lr * torch.sqrt(Lambda_r).unsqueeze(0)        # (d, rank)
+        L_all_cpu[b] = L_b.detach().cpu()
+        sigma2_per[b] = sigma2_b
+        del V_lr, S_lr, lambdas_top, Lambda_r, L_b, trace_S, top_idx, rb
+
+        if (b + 1) % max(1, K // 10) == 0:
+            print(f"    PPCA {b+1}/{K}, sigma2_avg={sigma2_per[:b+1].mean().item():.5f}",
+                  flush=True)
+
+    # Aggregate per-component sigma_b^2 to a single shared sigma^2 via
+    # w_b-weighted mean (the MLE under the shared-noise constraint).
+    sigma2_shared = (w_gpu * sigma2_per).sum().clamp(min=s2_floor).item()
+    print(f"  PPCA done in {time.time()-t0:.0f}s, shared sigma2={sigma2_shared:.6f} "
+          f"(per-comp range [{sigma2_per.min().item():.5f}, "
+          f"{sigma2_per.max().item():.5f}])", flush=True)
+
+    L_np = L_all_cpu.numpy()
+    del L_all_cpu, sigma2_per, x_gpu, c_gpu
+    gc.collect(); torch.cuda.empty_cache()
+    return L_np, float(sigma2_shared)
+
+
 def learn_lowrank_cov_fast(x_np, mu, T_np, rank, nit=800, lr=0.005,
                              s2_floor=0.001, wd=1e-4, data_batch=4096,
                              _auto_fallback=True):

@@ -1,0 +1,8 @@
+dataset,d,surrogate_measured,surrogate_theory_3i,gaussian_measured,gaussian_theory_3ii,ratio_gauss_over_surrogate
+ring6,2,8.1712,8.1581,8.0880,8.0742,0.99
+moons,2,9.4002,9.4257,9.6180,9.6182,1.02
+pinwheel,2,4.9927,4.9884,6.5081,6.4864,1.30
+checkerboard,2,5.3073,5.3183,6.6834,6.6717,1.26
+helix,3,4.6678,4.6772,8.3441,8.3443,1.79
+mnist,784,105.48,105.45,1655.18,1655.61,15.69
+cifar,3072,1528.36,1523.21,6929.16,6929.04,4.53

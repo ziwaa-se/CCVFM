@@ -1,3 +1,0 @@
-dataset,d,K,rank,m_direct,m_posterior,m_gauss,E_v1_sq,gauss_theory_E_v1_sq_plus_d,dim,ratio_gauss_over_direct,ratio_gauss_over_posterior
-mnist,784,2000,50,105.48,36.30,1655.18,871.61,1655.61,784,15.69,45.60
-cifar,3072,10000,80,1528.36,467.94,6929.16,3857.04,6929.04,3072,4.53,14.81

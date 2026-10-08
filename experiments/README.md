@@ -35,7 +35,7 @@ python mnist_pixel_ccvfm.py        # Stage I (K=2000, r=50) + 200k Stage III ste
 Output: `mnist_pixel_ccvfm_outputs/planC_results.csv`, where row `StageIII_EMA_50step`
 is the headline. The job takes about 50 minutes on one GH200 (44 of them Stage III).
 It reproduces exactly: a re-run gives 0.761 and a re-training with
-`--train-seed 1` gives 0.747 (see `../results/`).
+`--train-seed 1` gives 0.747 (see `../results/review/`).
 
 ### CIFAR-10: FID<sub>50k</sub> 6.35 at 51 NFE (Table 3a)
 
@@ -79,6 +79,12 @@ node failure at step ~73k and was continued from the 60k checkpoint with
 `resume_celebahq_dcae_dit_cfg.py --start-step 60000 --extra-steps 340000`, which
 uses a fresh AdamW and a cosine schedule with peak 1e-4. The full 400k steps take
 ~52 h, so on a 48 h queue use the same resume script to split the run.
+
+## Review-period experiments
+
+The additional experiments from our public responses to the reviewers (Theorem 3 checks,
+rank and KDE ablations, training- and sampling-seed spreads, compression scaling and
+Stage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.
 
 ## File map
 

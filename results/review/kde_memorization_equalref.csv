@@ -1,0 +1,3 @@
+source,nn_train_mean,nn_train_std,nn_test,ratio_train_over_test
+kde,4.0247,0.0197,4.6540,0.865
+ccvfm,4.3507,0.0079,4.5812,0.950

@@ -1,0 +1,6 @@
+target,d,slope_mean,slope_std,nominal_-1/d,implied_d_eff,diagnostic
+ThinCircle,2,-0.503,0.013,-0.500,,sliced-W2 vs K (3 seeds)
+TwoMoons,2,-0.467,0.016,-0.500,,sliced-W2 vs K (3 seeds)
+helix,3,-0.441,0.022,-0.333,2.27,sliced-W2 vs K (3 seeds; lam=0.02)
+mnist,784,-0.162,0.000,-0.00128,12.3,transport-cost proxy vs K (3 Stage-I seeds)
+cifar,3072,-0.136,0.000,-0.00033,14.7,transport-cost proxy vs K (3 Stage-I seeds)

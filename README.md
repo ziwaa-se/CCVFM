@@ -28,7 +28,7 @@
 
 - **3× lower FID with 10× fewer steps than HRF2 on MNIST.** CCVFM reaches FID<sub>50k</sub> **0.75 at 51 NFE**. The best HRF2 result is 2.57 at 500 NFE.
 - **Same network, better source.** On ImageNet-32 we keep HRF2's U-Net and FID protocol and change only the source distribution. FID drops by **38% at 11 NFE** and **24% at 21 NFE**.
-- **The source is what matters.** In a controlled MNIST ablation (same network, same 80k-step budget), only the inner-flow source changes. The coreset surrogate reaches FID<sub>50k</sub> **2.60 ± 0.21** at 11 NFE; the Gaussian source reaches **10.74**.
+- **The source is what matters.** In a controlled MNIST ablation (same network, same 80k-step budget), only the inner-flow source changes. The coreset surrogate reaches FID<sub>50k</sub> **2.60 ± 0.22** at 11 NFE; the Gaussian source reaches **10.74**.
 - **Stage I is cheap.** The coreset surrogate of CIFAR-10 (K = 10,000) takes **95 s on one GPU**, and ImageNet-32 (1.28M images) takes **6 min**. That is under 0.5% of the training budget.
 - **Stage II needs no network.** Sampling from the surrogate is a categorical draw plus a Gaussian draw, in closed form.
 - **It comes with theory.** The source-to-target transport cost CCVFM's network must learn shrinks as $O(K^{-1/d})$. With a Gaussian source this cost stays bounded below by a constant, however large K or n is.
@@ -185,13 +185,63 @@ To isolate the contribution of the source, we train the same correction U-Net on
 | Source of the inner flow | FID<sub>50k</sub> @ 6 NFE | @ 11 NFE | @ 21 NFE |
 |---|---:|---:|---:|
 | Gaussian $\mathcal N(0,I)$ (HRF2), 2 seeds | 17.17 | 10.74 | 9.94 |
-| **Coreset surrogate (CCVFM)**, 5 seeds | **3.25 ± 0.32** | **2.60 ± 0.21** | **2.86 ± 0.36** |
+| **Coreset surrogate (CCVFM)**, 5 seeds | **3.25 ± 0.31** | **2.60 ± 0.22** | **2.86 ± 0.36** |
 
-The measured size of the regression target explains the gap. At t = 0, $\mathbb E\|V_1-V_0\|^2$ is **1655** with the Gaussian source and **36** with CCVFM on MNIST (45× smaller). On CIFAR-10 it is **6929** vs **468** (15× smaller). The Gaussian-source value matches its closed form $\mathbb E\|V_1\|^2+d$ to within 0.03%. Raw numbers: [`results/mnist_source_ablation.csv`](results/mnist_source_ablation.csv), [`results/training_target_second_moment.csv`](results/training_target_second_moment.csv).
+The theory predicts this gap: with a Gaussian source the regression target must absorb the whole noise-to-data transport, while the surrogate source leaves only a surrogate-to-target residual (see the Theorem 3 check below). Raw numbers: [`results/mnist_source_ablation.csv`](results/mnist_source_ablation.csv).
 
-**Reproducibility.** On the MNIST headline checkpoint, 5 sampling seeds give FID<sub>50k</sub> 2.958 ± 0.032 / 1.136 ± 0.017 / **0.772 ± 0.011** at 11 / 21 / 51 NFE. A full re-training with a different Stage III seed gives 2.994 / 1.125 / **0.747**. The seed-to-seed spread is one to two orders of magnitude smaller than the gap to HRF2.
+---
 
-**Stage I cost** (one GPU, excluding data loading): MNIST (n = 60k, K = 2000) 10 s; CIFAR-10 (n = 50k, K = 10,000) 95 s; ImageNet-32 (n = 1.28M, K = 5000) 350 s.
+## Additional experiments from the review
+
+These experiments were added in our public responses to the NeurIPS 2026 reviewers. The code is in [`experiments/rebuttal/`](experiments/rebuttal/) and the raw numbers are in [`results/review/`](results/review/). They use deliberately lightweight budgets, so absolute values are not comparable to the main tables.
+
+**Both identities of Theorem 3 hold numerically.** Monte-Carlo estimates of the training-target second moment $\mathbb E\|V_1-V_0\|^2$ at $t=0$, against the closed forms $\mathrm{tr}\,\Sigma_\pi+\mathrm{tr}\,\Sigma_{\mathrm{sur}}+\|\mu_\pi-\mu_{\mathrm{sur}}\|^2$ (surrogate source, Thm 3(i)) and $\mathbb E\|V_1\|^2+d$ (Gaussian source, Thm 3(ii)):
+
+| Dataset ($d$) | Surrogate: measured | Thm 3(i) | Gaussian: measured | Thm 3(ii) | Gaussian / surrogate |
+|---|---:|---:|---:|---:|---:|
+| ring-6 (2) | 8.171 | 8.158 | 8.088 | 8.074 | 1.0 |
+| moons (2) | 9.400 | 9.426 | 9.618 | 9.618 | 1.0 |
+| pinwheel (2) | 4.993 | 4.988 | 6.508 | 6.486 | 1.3 |
+| checkerboard (2) | 5.307 | 5.318 | 6.683 | 6.672 | 1.3 |
+| helix (3) | 4.668 | 4.677 | 8.344 | 8.344 | 1.8 |
+| MNIST (784) | **105.5** | 105.4 | 1655.2 | 1655.6 | **15.7** |
+| CIFAR-10 (3072) | **1528.4** | 1523.2 | 6929.2 | 6929.0 | **4.5** |
+
+Measurements and theory agree to 0.03–0.3%. On the image benchmarks the surrogate source shrinks the regression target by 16× (MNIST) and 4.5× (CIFAR-10); on the low-dimensional toys the gain is small, consistent with the dimension-proportional Gaussian term $d$ mattering in high ambient dimension.
+
+**The low-rank covariance saturates around r = 50.** MNIST, K = 1000, 80k steps, FID<sub>50k</sub> (mean ± std over 3 training seeds; 5 for r = 30). The full-rank arm uses $\sigma^2=0$, $L=U\Lambda^{1/2}$.
+
+| r | 6 NFE | 11 NFE | 21 NFE |
+|---:|---:|---:|---:|
+| 10 | 3.18 ± 0.06 | 3.47 ± 0.59 | 4.35 ± 0.89 |
+| 30 | 3.25 ± 0.31 | 2.60 ± 0.22 | 2.86 ± 0.36 |
+| 50 | 3.14 ± 0.45 | 2.38 ± 0.11 | 2.60 ± 0.13 |
+| 200 | 3.22 ± 0.33 | 2.36 ± 0.18 | 2.64 ± 0.14 |
+| 784 (full) | 2.90 ± 0.37 | 2.40 ± 0.16 | 2.82 ± 0.24 |
+
+**A KDE source (K = n) loses the low-NFE regime.** With $h=0.05$ the KDE source gives FID<sub>50k</sub> 68–82 at 6 NFE and is seed-unstable at 21 NFE (2.1 vs 34.9); $h=0.2$ is uniformly worse (12–36). In an equal-reference 1-NN check (10k generated vs 10k train and 10k test images), KDE samples sit 13% closer to training than to held-out data (4.02 vs 4.65), against 5% for the coreset surrogate (4.35 vs 4.58).
+
+**Compression follows an effective dimension.** Log-log slopes of the surrogate gap against K:
+
+| Target | Diagnostic | Slope | Reference |
+|---|---|---:|---|
+| thin circle (2D) | sliced W<sub>2</sub> | −0.503 ± 0.013 | $K^{-1/2}$ |
+| two moons (2D) | sliced W<sub>2</sub> | −0.467 ± 0.016 | $K^{-1/2}$ |
+| helix (curve in 3D) | sliced W<sub>2</sub> | −0.44 ± 0.02 | nominal $-1/3$ |
+| MNIST | transport-cost proxy | −0.162 | $\hat d_{\mathrm{eff}}\approx 12$ (nominal 784) |
+| CIFAR-10 | transport-cost proxy | −0.136 | $\hat d_{\mathrm{eff}}\approx 15$ (nominal 3072) |
+
+**Stage I is cheap** (one GPU, coreset iterations plus covariance fits, excluding data loading):
+
+| Dataset | n | K | r | Wall-clock | Peak GPU memory |
+|---|---:|---:|---:|---:|---:|
+| MNIST | 60k | 2,000 | 50 | 10 s | 1.6 GB |
+| CIFAR-10 | 50k | 10,000 | 80 | 95 s | 6.6 GB |
+| ImageNet-32 | 1.28M | 5,000 | 60 | 350 s | 22.9 GB |
+
+Wall-clock grows near-linearly in K (2 → 20 s on MNIST and 7 → 95 s on CIFAR-10 over a 16× range), well under 1% of the Stage III training time.
+
+**Error bars.** On the MNIST headline checkpoint, 5 sampling seeds give FID<sub>50k</sub> 2.958 ± 0.032 / 1.136 ± 0.017 / **0.772 ± 0.011** at 11 / 21 / 51 NFE. Re-training the whole pipeline with a different Stage III seed gives 2.994 / 1.125 / **0.747**.
 
 ---
 
@@ -205,6 +255,8 @@ The exact scripts behind every number live in [`experiments/`](experiments/). [`
 | CIFAR-10 | `cifar10_pixel_hrf2_ccvfm.py` (400k steps), then `resume_cifar10_pixel_hrf2_ccvfm.py` (to 720k) | ~24 h + ~20 h | FID<sub>50k</sub> 6.35 @ 51 NFE |
 | ImageNet-32 | `imagenet32_pixel_hrf2_ccvfm.py` | ~25 h | FID<sub>50k</sub> 8.76 @ 51 NFE |
 | CelebA-HQ 256 | `celebahq_dcae_dit_cfg.py` (continue with `resume_celebahq_dcae_dit_cfg.py` if your wall-clock limit is < 52 h), then `eval_celebahq_dcae_dit_cfg.py` | ~52 h + ~4 h | FID 4.17 @ 51 NFE (w = 0) |
+
+The review-period experiments (theory checks, rank and KDE ablations, compression scaling, Stage-I cost) have their own commands in [`experiments/rebuttal/README.md`](experiments/rebuttal/README.md).
 
 Every script accepts `--smoke` for a few-minute end-to-end check. Datasets (torchvision MNIST/CIFAR-10, Hugging Face ImageNet-32 and CelebA-HQ) and the DC-AE autoencoder download automatically on first use.
 
@@ -220,8 +272,9 @@ ccvfm/          small, documented, dimension-agnostic implementation (the thing 
   metrics.py      sliced W2, Inception FID
 examples/       toy2d.py, mnist_quickstart.py
 experiments/    the paper scripts (MNIST, CIFAR-10, ImageNet-32, CelebA-HQ) + evaluation
+  rebuttal/       the additional experiments from the review (theory checks, ablations, cost)
 slurm/          job templates for the experiments
-results/        CSVs behind every reported number
+results/        CSVs behind every reported number (review-period results in results/review/)
 tests/          correctness tests for ccvfm/
 tools/          figure generation for this README
 docs/           project homepage (GitHub Pages)
