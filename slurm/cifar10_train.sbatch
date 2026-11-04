@@ -20,6 +20,5 @@ cd experiments
 python cifar10_pixel_hrf2_ccvfm.py --tag pp \
     --K 10000 --rank 80 --cov-nit 1500 \
     --train-steps 400000 --bs 128 \
-    --unet-base 128 --unet-attention "16" --unet-res-blocks 2 \
-    --coupling-mode general_t
+    --unet-base 128 --unet-attention "16" --unet-res-blocks 2
 # -> cifar10_planS_outputs_pp/{gmm_k10000.pt, unet.pt, unet_ema.pt}

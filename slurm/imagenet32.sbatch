@@ -21,6 +21,5 @@ python imagenet32_pixel_hrf2_ccvfm.py --tag t_hrf2 \
     --K 5000 --rank 80 --cov-nit 1500 \
     --train-steps 400000 --bs 256 \
     --base-lr 1.4e-4 --warmup-steps 5000 \
-    --n-gen 50000 \
-    --coupling-mode general_t
+    --n-gen 50000
 # -> imagenet32_planT_outputs_t_hrf2/planT_results_t_hrf2.csv  (FID50k 8.76 @ L=50)

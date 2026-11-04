@@ -241,10 +241,10 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <div class="authors">
 <div class="names">
 <a href="mailto:she8@purdue.edu">Zihua She</a>
-<a href="mailto:jianxi@purdue.edu">Jianxi Su</a>
+<a href="mailto:jianxi.su@uga.edu">Jianxi Su</a>
 <a href="mailto:wangxiao@purdue.edu">Xiao Wang</a>
 </div>
-<div class="affil">Department of Statistics, Purdue University</div>
+<div class="affil">Purdue University · University of Georgia</div>
 </div>
 <div class="venue">NeurIPS 2026</div>
 <nav class="buttons" aria-label="Paper links">
@@ -273,7 +273,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <div class="stage s1">
 <span class="num">STAGE I · CORESET</span>
 <h3>Compress the data, then lift to a mixture</h3>
-<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Closed-form probabilistic PCA lifts each atom to a Gaussian <i>N</i>(μ<sub>k</sub>, L<sub>k</sub>L<sub>k</sub><sup>⊤</sup>+σ²I), giving the surrogate ρ̃<sub>1</sub>.</p>
+<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Each atom is lifted to a Gaussian <i>N</i>(μ<sub>k</sub>, Σ<sub>k</sub>) with a low-rank-plus-diagonal covariance, giving the surrogate ρ̃<sub>1</sub>.</p>
 <span class="cost">No network · 95 s for CIFAR-10 at K = 10,000</span>
 </div>
 <div class="stage s2">
@@ -285,7 +285,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <div class="stage s3">
 <span class="num">STAGE III · LEARNED CORRECTION</span>
 <h3>Learn only the residual</h3>
-<p>A correction network is trained by flow matching in velocity space, with the source drawn from π̃ and anchored to the mixture component of each training image. It refines a surrogate-to-target residual, not a noise-to-data map.</p>
+<p>A correction network is trained by flow matching in velocity space, with the source drawn through the mixture representation of π̃. It refines a surrogate-to-target residual, not a noise-to-data map.</p>
 <span class="cost">The only learned part · L Euler steps at sampling</span>
 </div>
 </div>
@@ -309,25 +309,25 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 </div>
 <figure>
 <div class="plate"><img src="static/fid_vs_nfe.png" alt="FID versus number of function evaluations. Left: MNIST, CCVFM reaches 0.75 at 51 NFE while HRF2 reaches 2.57 at 500 NFE. Right: ImageNet-32, CCVFM is 38 percent and 24 percent lower than HRF2 at 11 and 21 NFE." loading="lazy"></div>
-<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2 and only the source changes: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>
+<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>
 </figure>
 </section>
 
 <section aria-labelledby="ablation">
 <span class="label">Ablation</span>
-<h2 id="ablation">The source is what matters</h2>
-<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST. The only change is where the inner flow starts.</p>
+<h2 id="ablation">CCVFM vs. a Gaussian source</h2>
+<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST, using the CCVFM recipe or a Gaussian inner source.</p>
 <div class="two">
 <figure><div class="plate"><img src="static/source_ablation.png" alt="FID versus NFE on MNIST for the coreset surrogate source and the Gaussian source" loading="lazy"></div></figure>
 <div class="tablewrap">
 <table>
-<thead><tr><th>Inner-flow source</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>
+<thead><tr><th>Method</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>
 <tbody>
 <tr><td>Gaussian N(0, I) (HRF2), 2 seeds</td><td>17.17</td><td>10.74</td><td>9.94</td></tr>
-<tr class="ours"><td>Coreset surrogate (CCVFM), 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>
+<tr class="ours"><td>CCVFM, 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>
 </tbody>
 </table>
-<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better. Theorem 3 explains the gap: the surrogate source leaves only a surrogate-to-target residual to learn (see the checks below).</p>
+<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better.</p>
 </div>
 </div>
 <figure>
@@ -358,7 +358,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <p class="prose" style="font-size:16px;color:var(--muted)">Monte-Carlo estimates of E‖V<sub>1</sub>−V<sub>0</sub>‖² at t = 0 agree with both closed forms to 0.03–0.3%. On images the surrogate source shrinks the regression target 16× (MNIST) and 4.5× (CIFAR-10).</p>
 <div class="two">
 <div style="display:flex;flex-direction:column;gap:12px">
-<h3>The low-rank covariance saturates near r = 50</h3>
+<h3>Returns diminish beyond r ≈ 30–50</h3>
 <div class="tablewrap">
 <table style="min-width:360px">
 <thead><tr><th>r</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>
@@ -402,8 +402,8 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <h2 id="theory">Why a coreset source helps</h2>
 <ol class="claims">
 <li><b>Transport-task reduction.</b> At the generation boundary, the task left to the correction network is exactly the surrogate gap W<sub>2</sub>(ρ<sub>1</sub>, ρ̃<sub>1</sub>), which is O(K<sup>−1/d</sup>) under the Stage I compression assumption. With a Gaussian source the same task is bounded below by √d(√(σ<sub>1</sub>²+1)−1), a constant however large K or n is.</li>
-<li><b>Fewer Euler steps.</b> The number of Euler steps needed for a given discretisation error scales with the square of that task size, so a smaller surrogate gap directly buys lower NFE.</li>
-<li><b>A smaller regression target.</b> The conditional second moment of V<sub>1</sub>−V<sub>0</sub> under the surrogate source depends on within-mode quantities; the Gaussian source pays the cross-mode diameter plus d.</li>
+<li><b>Fewer Euler steps.</b> Under flattening conditions on the learned field, the number of Euler steps needed for a given discretisation error scales with the square of that task size.</li>
+<li><b>A smaller regression target.</b> Theorem 3 gives the exact conditional second moment of V<sub>1</sub>−V<sub>0</sub> for both sources; the independent Gaussian source pays the cross-mode spread plus d.</li>
 </ol>
 </section>
 

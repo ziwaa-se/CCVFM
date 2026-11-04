@@ -16,7 +16,7 @@ from .velocity import (component_velocity, interpolant_marginal,
                        posterior_coupled_velocity, sample_velocity,
                        velocity_mixture_weights)
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 __all__ = [
     "LowRankGMM", "fit_coreset_gmm", "sinkhorn_coreset", "coreset_responsibilities",

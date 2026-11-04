@@ -44,9 +44,9 @@ trained in two jobs: 400k steps, then a continuation.
 ```bash
 python cifar10_pixel_hrf2_ccvfm.py --tag pp --K 10000 --rank 80 --cov-nit 1500 \
     --train-steps 400000 --bs 128 --unet-base 128 --unet-attention "16" \
-    --unet-res-blocks 2 --coupling-mode general_t
+    --unet-res-blocks 2
 python resume_cifar10_pixel_hrf2_ccvfm.py --start-step 400000 --train-steps 720000 \
-    --bs 128 --unet-base 128 --unet-attention "16" --unet-res-blocks 2 --coupling-mode general_t
+    --bs 128 --unet-base 128 --unet-attention "16" --unet-res-blocks 2
 ```
 Output: `cifar10_planS_outputs_pp/planSpp_results_step720000.csv`. The same
 network at 400k steps gives 7.04 (`../results/cifar10_k10000_step400000.csv`).
@@ -57,7 +57,7 @@ network at 400k steps gives 7.04 (`../results/cifar10_k10000_step400000.csv`).
 ```bash
 python imagenet32_pixel_hrf2_ccvfm.py --tag t_hrf2 --K 5000 --rank 80 --cov-nit 1500 \
     --train-steps 400000 --bs 256 --base-lr 1.4e-4 --warmup-steps 5000 \
-    --n-gen 50000 --coupling-mode general_t
+    --n-gen 50000
 ```
 Takes about 25 h. Our run crashed after its 300k checkpoint and was finished with
 `resume_imagenet32_pixel_hrf2_ccvfm.py --start_step 300000 --end_step 400000`,
@@ -90,9 +90,9 @@ Stage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.
 
 | file | role |
 |---|---|
-| `mnist_pixel_gmm_core.py` | Stage I (`ems_coreset_gpu`, `learn_lowrank_cov_fast`), `GMMState`, Stage II sampler, data-anchored coupling at t = 0, MNIST FID |
+| `mnist_pixel_gmm_core.py` | Stage I (`ems_coreset_gpu`, `learn_lowrank_cov_fast`), `GMMState`, Stage II sampler, Stage III source draw at t = 0, MNIST FID |
 | `mnist_pixel_ccvfm.py` | MNIST headline trainer and evaluator |
-| `cifar10_sdvae_latent_ccvfm.py` | general-t closed-form sampler and coupling (`sample_velocity_general_t`, `coupled_sample_general_t`), EMA and LR schedule helpers |
+| `cifar10_sdvae_latent_ccvfm.py` | general-t closed-form sampler and source draw, EMA and LR schedule helpers |
 | `cifar10_pixel_hrf2_ccvfm.py`, `resume_cifar10_pixel_hrf2_ccvfm.py`, `eval_cifar10_checkpoint.py` | CIFAR-10 |
 | `imagenet32_pixel_hrf2_ccvfm.py`, `resume_imagenet32_pixel_hrf2_ccvfm.py` | ImageNet-32 |
 | `celebahq_dcae_unet.py` | CelebA-HQ loading and DC-AE encode/decode (also a U-Net variant) |
@@ -104,5 +104,4 @@ Stage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.
 **Implementation notes.**
 
 - In these scripts the per-component covariance $L_kL_k^\top+\sigma^2 I$ is initialised by randomized SVD and refined by a few hundred Adam steps on the responsibility-weighted Gaussian likelihood (`learn_lowrank_cov_fast`). The `ccvfm` package uses the closed-form PPCA estimator, which is the same model without the refinement.
-- The Stage III source $V_0$ is drawn from the surrogate component chosen by the posterior of the training image $x_1$ (`coupled_sample_gpu` / `coupled_sample_general_t`). Its marginal is the surrogate law $\tilde\pi(\cdot\mid x_t,t)$ used at inference.
 - The CIFAR-10 and ImageNet-32 CSVs label NFE as $J\cdot L$ (network evaluations). The paper adds one for the closed-form Stage II draw, so L = 50 is reported as 51 NFE.

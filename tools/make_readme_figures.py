@@ -57,7 +57,7 @@ def main():
           "MNIST: FID 0.75 at 51 NFE vs. HRF2's 2.57 at 500 NFE", logy=True)
     axes[0].set_xlim(4, 1500)
     panel(axes[1], rows, "ImageNet-32", ["HRF2", "CCVFM"],
-          "ImageNet-32: same U-Net, only the source changes", logy=False,
+          "ImageNet-32: same U-Net", logy=False,
           label_dy={"HRF2": 9, "CCVFM": -9})
     axes[1].set_xlim(8, 90)
     axes[1].set_xticks([11, 21, 51])
@@ -94,7 +94,7 @@ def source_ablation():
     ax.set_yscale("log")
     ax.set_xticks([6, 11, 21])
     ax.set_xticklabels(["6", "11", "21"])
-    ax.set_title("MNIST, same network, same Stage III budget (80k steps):\nonly the inner-flow source differs",
+    ax.set_title("MNIST, same network, same Stage III budget (80k steps)",
                  loc="left", fontsize=11, color=INK)
     ax.set_xlabel("function evaluations (NFE)", color=MUTED)
     ax.set_ylabel("FID$_{50k}$  (lower is better)", color=MUTED)

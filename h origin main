@@ -1,0 +1,564 @@
+[1mdiff --git a/README.md b/README.md[m
+[1mindex d476707..fa05dff 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -16,8 +16,8 @@[m
+ ![Python](https://img.shields.io/badge/python-3.10%2B-blue)[m
+ ![PyTorch](https://img.shields.io/badge/PyTorch-2.5%2B-ee4c2c)[m
+ [m
+[31m-[Zihua She](mailto:she8@purdue.edu) · [Jianxi Su](mailto:jianxi@purdue.edu) · [Xiao Wang](mailto:wangxiao@purdue.edu)[m
+[31m-<br>Department of Statistics, Purdue University[m
+[32m+[m[32m[Zihua She](mailto:she8@purdue.edu)<sup>1</sup> · [Jianxi Su](mailto:jianxi.su@uga.edu)<sup>2</sup> · [Xiao Wang](mailto:wangxiao@purdue.edu)<sup>1</sup>[m
+[32m+[m[32m<br><sup>1</sup>Department of Statistics, Purdue University · <sup>2</sup>Terry College of Business, University of Georgia[m
+ [m
+ </div>[m
+ [m
+[36m@@ -27,11 +27,11 @@[m
+ ## Highlights[m
+ [m
+ - **3× lower FID with 10× fewer steps than HRF2 on MNIST.** CCVFM reaches FID<sub>50k</sub> **0.75 at 51 NFE**. The best HRF2 result is 2.57 at 500 NFE.[m
+[31m-- **Same network, better source.** On ImageNet-32 we keep HRF2's U-Net and FID protocol and change only the source distribution. FID drops by **38% at 11 NFE** and **24% at 21 NFE**.[m
+[31m-- **The source is what matters.** In a controlled MNIST ablation (same network, same 80k-step budget), only the inner-flow source changes. The coreset surrogate reaches FID<sub>50k</sub> **2.60 ± 0.22** at 11 NFE; the Gaussian source reaches **10.74**.[m
+[31m-- **Stage I is cheap.** The coreset surrogate of CIFAR-10 (K = 10,000) takes **95 s on one GPU**, and ImageNet-32 (1.28M images) takes **6 min**. That is under 0.5% of the training budget.[m
+[32m+[m[32m- **Same network, informed source.** On ImageNet-32, with HRF2's U-Net and FID protocol, FID drops by **38% at 11 NFE** and **24% at 21 NFE**.[m
+[32m+[m[32m- **A direct MNIST comparison.** With the same network and the same 80k-step budget, CCVFM reaches FID<sub>50k</sub> **2.60 ± 0.22** at 11 NFE; a Gaussian-source run reaches **10.74**.[m
+[32m+[m[32m- **Stage I is cheap.** The coreset surrogate of CIFAR-10 (K = 10,000) takes **95 s on one GPU**, and ImageNet-32 (1.28M images) takes **6 min**. That is under 1% of the training budget.[m
+ - **Stage II needs no network.** Sampling from the surrogate is a categorical draw plus a Gaussian draw, in closed form.[m
+[31m-- **It comes with theory.** The source-to-target transport cost CCVFM's network must learn shrinks as $O(K^{-1/d})$. With a Gaussian source this cost stays bounded below by a constant, however large K or n is.[m
+[32m+[m[32m- **It comes with theory.** The source-to-target transport cost CCVFM's network must learn shrinks as $O(K^{-1/d})$ under the Stage-I compression assumption. With a Gaussian source this cost stays bounded below by a constant, however large K or n is.[m
+ - **The results reproduce.** Five sampling seeds give MNIST FID<sub>50k</sub> **0.772 ± 0.011**. Retraining from scratch with a new seed gives **0.747**.[m
+ [m
+ <table>[m
+[36m@@ -54,9 +54,9 @@[m [mA flow-matching model regresses the velocity $V = X_1 - X_0$ of the straight pat[m
+ [m
+ | | What happens | Learned parameters |[m
+ |---|---|---|[m
+[31m-| **Stage I: coreset** | An entropic-Sinkhorn coreset compresses the data into $K$ weighted atoms. Each atom is lifted to a Gaussian by closed-form probabilistic PCA, giving the surrogate $\tilde\rho_1=\sum_k w_k\,\mathcal N(\mu_k, L_kL_k^\top+\sigma^2 I)$. | none (closed form, seconds to minutes) |[m
+[32m+[m[32m| **Stage I: coreset** | An entropic-Sinkhorn coreset compresses the data into $K$ weighted atoms. Each atom is lifted to a Gaussian with a low-rank-plus-diagonal covariance, giving the surrogate $\tilde\rho_1=\sum_k w_k\,\mathcal N(\mu_k,\Sigma_k)$. | no network (seconds to minutes) |[m
+ | **Stage II: closed-form velocity law** | Plugging $\tilde\rho_1$ into $\pi(v\mid x_t,t)\propto\rho_0(x_t-tv)\,\rho_1(x_t+(1-t)v)$ gives an explicit $K$-component Gaussian mixture $\tilde\pi(v\mid x_t,t)$. At $t=0$ it is simply $\tilde\rho_1(x_0+v)$. | none (one categorical draw plus one Gaussian draw) |[m
+[31m-| **Stage III: correction flow** | A network $f_\theta(v,\tau,x_t,t)$ is trained by flow matching in velocity space. The source is $V_0\sim\tilde\pi(\cdot\mid x_t,t)$, drawn from the component that owns each data point (data-anchored coupling), and the target is $V_1=X_1-X_0$. The network therefore learns a small surrogate-to-target residual. | the correction network |[m
+[32m+[m[32m| **Stage III: correction flow** | A network $f_\theta(v,\tau,x_t,t)$ is trained by flow matching in velocity space. The source $V_0$ is drawn through the mixture representation of $\tilde\pi(\cdot\mid x_t,t)$ (a component label, then a Gaussian), and the target is $V_1=X_1-X_0$. The network therefore learns a small surrogate-to-target residual. | the correction network |[m
+ [m
+ **Sampling ($J=1$, the recommended setting).** Draw $x_0\sim\mathcal N(0,I)$ and $v\sim\tilde\pi(\cdot\mid x_0,0)$. Then take $L$ Euler steps $v\leftarrow v+\tfrac1L f_\theta(v,\ell/L,x_0,0)$ and return $x_0+v$. The total cost is NFE $=L+1$, counting the closed-form draw as one.[m
+ [m
+[36m@@ -65,8 +65,8 @@[m [mA flow-matching model regresses the velocity $V = X_1 - X_0$ of the straight pat[m
+ [m
+ Define the correction task at the generation boundary as $D(Q)=\big(\mathbb E_{X_0}W_2^2(Q(\cdot\mid X_0,0),\,\pi(\cdot\mid X_0,0))\big)^{1/2}$.[m
+ [m
+[31m-1. **Transport-task reduction.** $D(Q_{\mathrm{CCVFM}})=W_2(\rho_1,\tilde\rho_1)\le C_Q K^{-1/d}$ under the Stage-I compression assumption. For the Gaussian source, $D(Q_{\mathrm{HRF2}})\ge\sqrt d\,(\sqrt{\sigma_1^2+1}-1)$, a positive constant in $K$ and $n$. The Euler budget needed to reach a given accuracy scales with $D(Q)^2$.[m
+[31m-2. **Training-target scale.** With the surrogate source, the conditional second moment of the regression target $V_1-V_0$ depends on within-mode quantities only. With an independent Gaussian source it pays the cross-mode diameter plus $d$. The data-anchored coupling keeps the source marginal exactly $\tilde\pi(\cdot\mid C)$, so training and inference use the same source.[m
+[32m+[m[32m1. **Transport-task reduction.** $D(Q_{\mathrm{CCVFM}})=W_2(\rho_1,\tilde\rho_1)\le C_Q K^{-1/d}$ under the Stage-I compression assumption. For the Gaussian source, $D(Q_{\mathrm{HRF2}})\ge\sqrt d\,(\sqrt{\sigma_1^2+1}-1)$, a positive constant in $K$ and $n$. Under flattening conditions on the learned field, the Euler budget needed to reach a given accuracy scales with $D(Q)^2$.[m
+[32m+[m[32m2. **Training-target scale.** For $V_0\sim\tilde\pi(\cdot\mid C)$ drawn independently of $V_1$ given $C$, $\mathbb E[\|V_1-V_0\|^2\mid C]=\mathrm{tr}\,\Sigma_\pi+\mathrm{tr}\,\Sigma_{\mathrm{sur}}+\|\mu_\pi-\mu_{\mathrm{sur}}\|^2$. For an independent Gaussian source it equals $\mathrm{tr}\,\Sigma_\pi+\|\mu_\pi\|^2+d$, which pays the cross-mode spread plus $d$. A similar conditioning argument applies to other designs of the label draw.[m
+ [m
+ </details>[m
+ [m
+[36m@@ -100,7 +100,7 @@[m [mfor step in range(5000):[m
+ x_gen = sample(net, gmm, 10_000, L=4)          # 4 network evaluations[m
+ ```[m
+ [m
+[31m-`ccvfm_loss(..., source="gaussian")` trains the HRF2 baseline with the same network, which makes controlled comparisons one argument away. The package is dimension-agnostic, and the low-rank covariance keeps every operation $O(Kdr)$.[m
+[32m+[m[32m`ccvfm_loss(..., source="gaussian")` trains the HRF2 baseline with the same network, which makes comparisons one argument away. The package is dimension-agnostic, and the low-rank covariance keeps every operation $O(Kdr)$.[m
+ [m
+ ### Two runnable examples[m
+ [m
+[36m@@ -176,18 +176,18 @@[m [mAll FIDs use InceptionV3 pool features. FID<sub>50k</sub> compares 50k samples a[m
+ [m
+ <sub>Baselines are quoted from their papers (MNIST and ImageNet-32 HRF2/RF rows from HRF2, Table 7). The CIFAR-10 and CelebA baselines are shown for context and differ in protocol or architecture. See the paper for the complete tables.</sub>[m
+ [m
+[31m-### What the surrogate source buys[m
+[32m+[m[32m### CCVFM vs. a Gaussian source on MNIST[m
+ [m
+ <p align="center"><img src="assets/source_ablation.png" width="60%"></p>[m
+ [m
+[31m-To isolate the contribution of the source, we train the same correction U-Net on MNIST with the same budget (80k steps, surrogate K = 1000, r = 30). The only change is where the inner flow starts: the coreset surrogate (CCVFM) or $\mathcal N(0,I)$ (HRF2). Everything else is identical.[m
+[32m+[m[32mWe train the same correction U-Net on MNIST with the same budget (80k steps, surrogate K = 1000, r = 30), using the CCVFM recipe or a Gaussian inner source $\mathcal N(0,I)$ (HRF2).[m
+ [m
+[31m-| Source of the inner flow | FID<sub>50k</sub> @ 6 NFE | @ 11 NFE | @ 21 NFE |[m
+[32m+[m[32m| Method | FID<sub>50k</sub> @ 6 NFE | @ 11 NFE | @ 21 NFE |[m
+ |---|---:|---:|---:|[m
+ | Gaussian $\mathcal N(0,I)$ (HRF2), 2 seeds | 17.17 | 10.74 | 9.94 |[m
+[31m-| **Coreset surrogate (CCVFM)**, 5 seeds | **3.25 ± 0.31** | **2.60 ± 0.22** | **2.86 ± 0.36** |[m
+[32m+[m[32m| **CCVFM**, 5 seeds | **3.25 ± 0.31** | **2.60 ± 0.22** | **2.86 ± 0.36** |[m
+ [m
+[31m-The theory predicts this gap: with a Gaussian source the regression target must absorb the whole noise-to-data transport, while the surrogate source leaves only a surrogate-to-target residual (see the Theorem 3 check below). Raw numbers: [`results/mnist_source_ablation.csv`](results/mnist_source_ablation.csv).[m
+[32m+[m[32mRaw numbers: [`results/mnist_source_ablation.csv`](results/mnist_source_ablation.csv).[m
+ [m
+ ---[m
+ [m
+[36m@@ -209,7 +209,7 @@[m [mThese experiments were added in our public responses to the NeurIPS 2026 reviewe[m
+ [m
+ Measurements and theory agree to 0.03–0.3%. On the image benchmarks the surrogate source shrinks the regression target by 16× (MNIST) and 4.5× (CIFAR-10); on the low-dimensional toys the gain is small, consistent with the dimension-proportional Gaussian term $d$ mattering in high ambient dimension.[m
+ [m
+[31m-**The low-rank covariance saturates around r = 50.** MNIST, K = 1000, 80k steps, FID<sub>50k</sub> (mean ± std over 3 training seeds; 5 for r = 30). The full-rank arm uses $\sigma^2=0$, $L=U\Lambda^{1/2}$.[m
+[32m+[m[32m**Returns diminish beyond r ≈ 30–50.** MNIST, K = 1000, 80k steps, FID<sub>50k</sub> (mean ± std over 3 training seeds; 5 for r = 30). The full-rank arm uses $\sigma^2=0$, $L=U\Lambda^{1/2}$.[m
+ [m
+ | r | 6 NFE | 11 NFE | 21 NFE |[m
+ |---:|---:|---:|---:|[m
+[36m@@ -235,7 +235,7 @@[m [mMeasurements and theory agree to 0.03–0.3%. On the image benchmarks the surrog[m
+ [m
+ | Dataset | n | K | r | Wall-clock | Peak GPU memory |[m
+ |---|---:|---:|---:|---:|---:|[m
+[31m-| MNIST | 60k | 2,000 | 50 | 10 s | 1.6 GB |[m
+[32m+[m[32m| MNIST | 60k | 2,000 | 30 | 10 s | 1.6 GB |[m
+ | CIFAR-10 | 50k | 10,000 | 80 | 95 s | 6.6 GB |[m
+ | ImageNet-32 | 1.28M | 5,000 | 60 | 350 s | 22.9 GB |[m
+ [m
+[36m@@ -266,7 +266,7 @@[m [mEvery script accepts `--smoke` for a few-minute end-to-end check. Datasets (torc[m
+ ccvfm/          small, documented, dimension-agnostic implementation (the thing to import)[m
+   coreset.py      Stage I   Sinkhorn coreset + closed-form PPCA lift[m
+   gmm.py          low-rank GMM with Woodbury densities / sampling[m
+[31m-  velocity.py     Stage II  closed-form conditional velocity law, data-anchored coupling[m
+[32m+[m[32m  velocity.py     Stage II  closed-form conditional velocity law and source draws[m
+   flow.py         Stage III loss + nested J x L sampler[m
+   nets.py         reference MLP / U-Net correction networks, EMA[m
+   metrics.py      sliced W2, Inception FID[m
+[1mdiff --git a/docs/index.html b/docs/index.html[m
+[1mindex 9e8f018..ce21296 100644[m
+[1m--- a/docs/index.html[m
+[1m+++ b/docs/index.html[m
+[36m@@ -241,10 +241,10 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <div class="authors">[m
+ <div class="names">[m
+ <a href="mailto:she8@purdue.edu">Zihua She</a>[m
+[31m-<a href="mailto:jianxi@purdue.edu">Jianxi Su</a>[m
+[32m+[m[32m<a href="mailto:jianxi.su@uga.edu">Jianxi Su</a>[m
+ <a href="mailto:wangxiao@purdue.edu">Xiao Wang</a>[m
+ </div>[m
+[31m-<div class="affil">Department of Statistics, Purdue University</div>[m
+[32m+[m[32m<div class="affil">Purdue University · University of Georgia</div>[m
+ </div>[m
+ <div class="venue">NeurIPS 2026</div>[m
+ <nav class="buttons" aria-label="Paper links">[m
+[36m@@ -273,7 +273,7 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <div class="stage s1">[m
+ <span class="num">STAGE I · CORESET</span>[m
+ <h3>Compress the data, then lift to a mixture</h3>[m
+[31m-<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Closed-form probabilistic PCA lifts each atom to a Gaussian <i>N</i>(μ<sub>k</sub>, L<sub>k</sub>L<sub>k</sub><sup>⊤</sup>+σ²I), giving the surrogate ρ̃<sub>1</sub>.</p>[m
+[32m+[m[32m<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Each atom is lifted to a Gaussian <i>N</i>(μ<sub>k</sub>, Σ<sub>k</sub>) with a low-rank-plus-diagonal covariance, giving the surrogate ρ̃<sub>1</sub>.</p>[m
+ <span class="cost">No network · 95 s for CIFAR-10 at K = 10,000</span>[m
+ </div>[m
+ <div class="stage s2">[m
+[36m@@ -285,7 +285,7 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <div class="stage s3">[m
+ <span class="num">STAGE III · LEARNED CORRECTION</span>[m
+ <h3>Learn only the residual</h3>[m
+[31m-<p>A correction network is trained by flow matching in velocity space, with the source drawn from π̃ and anchored to the mixture component of each training image. It refines a surrogate-to-target residual, not a noise-to-data map.</p>[m
+[32m+[m[32m<p>A correction network is trained by flow matching in velocity space, with the source drawn through the mixture representation of π̃. It refines a surrogate-to-target residual, not a noise-to-data map.</p>[m
+ <span class="cost">The only learned part · L Euler steps at sampling</span>[m
+ </div>[m
+ </div>[m
+[36m@@ -309,25 +309,25 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ </div>[m
+ <figure>[m
+ <div class="plate"><img src="static/fid_vs_nfe.png" alt="FID versus number of function evaluations. Left: MNIST, CCVFM reaches 0.75 at 51 NFE while HRF2 reaches 2.57 at 500 NFE. Right: ImageNet-32, CCVFM is 38 percent and 24 percent lower than HRF2 at 11 and 21 NFE." loading="lazy"></div>[m
+[31m-<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2 and only the source changes: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>[m
+[32m+[m[32m<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>[m
+ </figure>[m
+ </section>[m
+ [m
+ <section aria-labelledby="ablation">[m
+ <span class="label">Ablation</span>[m
+[31m-<h2 id="ablation">The source is what matters</h2>[m
+[31m-<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST. The only change is where the inner flow starts.</p>[m
+[32m+[m[32m<h2 id="ablation">CCVFM vs. a Gaussian source</h2>[m
+[32m+[m[32m<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST, using the CCVFM recipe or a Gaussian inner source.</p>[m
+ <div class="two">[m
+ <figure><div class="plate"><img src="static/source_ablation.png" alt="FID versus NFE on MNIST for the coreset surrogate source and the Gaussian source" loading="lazy"></div></figure>[m
+ <div class="tablewrap">[m
+ <table>[m
+[31m-<thead><tr><th>Inner-flow source</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>[m
+[32m+[m[32m<thead><tr><th>Method</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>[m
+ <tbody>[m
+ <tr><td>Gaussian N(0, I) (HRF2), 2 seeds</td><td>17.17</td><td>10.74</td><td>9.94</td></tr>[m
+[31m-<tr class="ours"><td>Coreset surrogate (CCVFM), 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>[m
+[32m+[m[32m<tr class="ours"><td>CCVFM, 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>[m
+ </tbody>[m
+ </table>[m
+[31m-<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better. Theorem 3 explains the gap: the surrogate source leaves only a surrogate-to-target residual to learn (see the checks below).</p>[m
+[32m+[m[32m<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better.</p>[m
+ </div>[m
+ </div>[m
+ <figure>[m
+[36m@@ -358,7 +358,7 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <p class="prose" style="font-size:16px;color:var(--muted)">Monte-Carlo estimates of E‖V<sub>1</sub>−V<sub>0</sub>‖² at t = 0 agree with both closed forms to 0.03–0.3%. On images the surrogate source shrinks the regression target 16× (MNIST) and 4.5× (CIFAR-10).</p>[m
+ <div class="two">[m
+ <div style="display:flex;flex-direction:column;gap:12px">[m
+[31m-<h3>The low-rank covariance saturates near r = 50</h3>[m
+[32m+[m[32m<h3>Returns diminish beyond r ≈ 30–50</h3>[m
+ <div class="tablewrap">[m
+ <table style="min-width:360px">[m
+ <thead><tr><th>r</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>[m
+[36m@@ -402,8 +402,8 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <h2 id="theory">Why a coreset source helps</h2>[m
+ <ol class="claims">[m
+ <li><b>Transport-task reduction.</b> At the generation boundary, the task left to the correction network is exactly the surrogate gap W<sub>2</sub>(ρ<sub>1</sub>, ρ̃<sub>1</sub>), which is O(K<sup>−1/d</sup>) under the Stage I compression assumption. With a Gaussian source the same task is bounded below by √d(√(σ<sub>1</sub>²+1)−1), a constant however large K or n is.</li>[m
+[31m-<li><b>Fewer Euler steps.</b> The number of Euler steps needed for a given discretisation error scales with the square of that task size, so a smaller surrogate gap directly buys lower NFE.</li>[m
+[31m-<li><b>A smaller regression target.</b> The conditional second moment of V<sub>1</sub>−V<sub>0</sub> under the surrogate source depends on within-mode quantities; the Gaussian source pays the cross-mode diameter plus d.</li>[m
+[32m+[m[32m<li><b>Fewer Euler steps.</b> Under flattening conditions on the learned field, the number of Euler steps needed for a given discretisation error scales with the square of that task size.</li>[m
+[32m+[m[32m<li><b>A smaller regression target.</b> Theorem 3 gives the exact conditional second moment of V<sub>1</sub>−V<sub>0</sub> for both sources; the independent Gaussian source pays the cross-mode spread plus d.</li>[m
+ </ol>[m
+ </section>[m
+ [m
+[1mdiff --git a/experiments/README.md b/experiments/README.md[m
+[1mindex 6f47b62..ff9abed 100644[m
+[1m--- a/experiments/README.md[m
+[1m+++ b/experiments/README.md[m
+[36m@@ -44,9 +44,9 @@[m [mtrained in two jobs: 400k steps, then a continuation.[m
+ ```bash[m
+ python cifar10_pixel_hrf2_ccvfm.py --tag pp --K 10000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 128 --unet-base 128 --unet-attention "16" \[m
+[31m-    --unet-res-blocks 2 --coupling-mode general_t[m
+[32m+[m[32m    --unet-res-blocks 2[m
+ python resume_cifar10_pixel_hrf2_ccvfm.py --start-step 400000 --train-steps 720000 \[m
+[31m-    --bs 128 --unet-base 128 --unet-attention "16" --unet-res-blocks 2 --coupling-mode general_t[m
+[32m+[m[32m    --bs 128 --unet-base 128 --unet-attention "16" --unet-res-blocks 2[m
+ ```[m
+ Output: `cifar10_planS_outputs_pp/planSpp_results_step720000.csv`. The same[m
+ network at 400k steps gives 7.04 (`../results/cifar10_k10000_step400000.csv`).[m
+[36m@@ -57,7 +57,7 @@[m [mnetwork at 400k steps gives 7.04 (`../results/cifar10_k10000_step400000.csv`).[m
+ ```bash[m
+ python imagenet32_pixel_hrf2_ccvfm.py --tag t_hrf2 --K 5000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 256 --base-lr 1.4e-4 --warmup-steps 5000 \[m
+[31m-    --n-gen 50000 --coupling-mode general_t[m
+[32m+[m[32m    --n-gen 50000[m
+ ```[m
+ Takes about 25 h. Our run crashed after its 300k checkpoint and was finished with[m
+ `resume_imagenet32_pixel_hrf2_ccvfm.py --start_step 300000 --end_step 400000`,[m
+[36m@@ -90,9 +90,9 @@[m [mStage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.[m
+ [m
+ | file | role |[m
+ |---|---|[m
+[31m-| `mnist_pixel_gmm_core.py` | Stage I (`ems_coreset_gpu`, `learn_lowrank_cov_fast`), `GMMState`, Stage II sampler, data-anchored coupling at t = 0, MNIST FID |[m
+[32m+[m[32m| `mnist_pixel_gmm_core.py` | Stage I (`ems_coreset_gpu`, `learn_lowrank_cov_fast`), `GMMState`, Stage II sampler, Stage III source draw at t = 0, MNIST FID |[m
+ | `mnist_pixel_ccvfm.py` | MNIST headline trainer and evaluator |[m
+[31m-| `cifar10_sdvae_latent_ccvfm.py` | general-t closed-form sampler and coupling (`sample_velocity_general_t`, `coupled_sample_general_t`), EMA and LR schedule helpers |[m
+[32m+[m[32m| `cifar10_sdvae_latent_ccvfm.py` | general-t closed-form sampler and source draw, EMA and LR schedule helpers |[m
+ | `cifar10_pixel_hrf2_ccvfm.py`, `resume_cifar10_pixel_hrf2_ccvfm.py`, `eval_cifar10_checkpoint.py` | CIFAR-10 |[m
+ | `imagenet32_pixel_hrf2_ccvfm.py`, `resume_imagenet32_pixel_hrf2_ccvfm.py` | ImageNet-32 |[m
+ | `celebahq_dcae_unet.py` | CelebA-HQ loading and DC-AE encode/decode (also a U-Net variant) |[m
+[36m@@ -104,5 +104,4 @@[m [mStage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.[m
+ **Implementation notes.**[m
+ [m
+ - In these scripts the per-component covariance $L_kL_k^\top+\sigma^2 I$ is initialised by randomized SVD and refined by a few hundred Adam steps on the responsibility-weighted Gaussian likelihood (`learn_lowrank_cov_fast`). The `ccvfm` package uses the closed-form PPCA estimator, which is the same model without the refinement.[m
+[31m-- The Stage III source $V_0$ is drawn from the surrogate component chosen by the posterior of the training image $x_1$ (`coupled_sample_gpu` / `coupled_sample_general_t`). Its marginal is the surrogate law $\tilde\pi(\cdot\mid x_t,t)$ used at inference.[m
+ - The CIFAR-10 and ImageNet-32 CSVs label NFE as $J\cdot L$ (network evaluations). The paper adds one for the closed-form Stage II draw, so L = 50 is reported as 51 NFE.[m
+[1mdiff --git a/slurm/cifar10_resume.sbatch b/slurm/cifar10_resume.sbatch[m
+[1mindex fbf17aa..2de1232 100644[m
+[1m--- a/slurm/cifar10_resume.sbatch[m
+[1m+++ b/slurm/cifar10_resume.sbatch[m
+[36m@@ -19,8 +19,7 @@[m [mcd "${SLURM_SUBMIT_DIR:-.}"[m
+ cd experiments[m
+ python resume_cifar10_pixel_hrf2_ccvfm.py \[m
+     --start-step 400000 --train-steps 720000 --bs 128 \[m
+[31m-    --unet-base 128 --unet-attention "16" --unet-res-blocks 2 \[m
+[31m-    --coupling-mode general_t[m
+[32m+[m[32m    --unet-base 128 --unet-attention "16" --unet-res-blocks 2[m
+ # -> cifar10_planS_outputs_pp/planSpp_results_step720000.csv  (FID50k 6.35 @ L=50)[m
+ # Re-evaluate any milestone later with:[m
+ #   CCVFM_CKPT_TAG=step720000 python eval_cifar10_checkpoint.py[m
+[1mdiff --git a/slurm/cifar10_train.sbatch b/slurm/cifar10_train.sbatch[m
+[1mindex c64fbdc..ed6010c 100644[m
+[1m--- a/slurm/cifar10_train.sbatch[m
+[1m+++ b/slurm/cifar10_train.sbatch[m
+[36m@@ -20,6 +20,5 @@[m [mcd experiments[m
+ python cifar10_pixel_hrf2_ccvfm.py --tag pp \[m
+     --K 10000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 128 \[m
+[31m-    --unet-base 128 --unet-attention "16" --unet-res-blocks 2 \[m
+[31m-    --coupling-mode general_t[m
+[32m+[m[32m    --unet-base 128 --unet-attention "16" --unet-res-blocks 2[m
+ # -> cifar10_planS_outputs_pp/{gmm_k10000.pt, unet.pt, unet_ema.pt}[m
+[1mdiff --git a/slurm/imagenet32.sbatch b/slurm/imagenet32.sbatch[m
+[1mindex 22e4285..b15e15d 100644[m
+[1m--- a/slurm/imagenet32.sbatch[m
+[1m+++ b/slurm/imagenet32.sbatch[m
+[36m@@ -21,6 +21,5 @@[m [mpython imagenet32_pixel_hrf2_ccvfm.py --tag t_hrf2 \[m
+     --K 5000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 256 \[m
+     --base-lr 1.4e-4 --warmup-steps 5000 \[m
+[31m-    --n-gen 50000 \[m
+[31m-    --coupling-mode general_t[m
+[32m+[m[32m    --n-gen 50000[m
+ # -> imagenet32_planT_outputs_t_hrf2/planT_results_t_hrf2.csv  (FID50k 8.76 @ L=50)[m
+[1mdiff --git a/README.md b/README.md[m
+[1mindex d476707..fa05dff 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -16,8 +16,8 @@[m
+ ![Python](https://img.shields.io/badge/python-3.10%2B-blue)[m
+ ![PyTorch](https://img.shields.io/badge/PyTorch-2.5%2B-ee4c2c)[m
+ [m
+[31m-[Zihua She](mailto:she8@purdue.edu) · [Jianxi Su](mailto:jianxi@purdue.edu) · [Xiao Wang](mailto:wangxiao@purdue.edu)[m
+[31m-<br>Department of Statistics, Purdue University[m
+[32m+[m[32m[Zihua She](mailto:she8@purdue.edu)<sup>1</sup> · [Jianxi Su](mailto:jianxi.su@uga.edu)<sup>2</sup> · [Xiao Wang](mailto:wangxiao@purdue.edu)<sup>1</sup>[m
+[32m+[m[32m<br><sup>1</sup>Department of Statistics, Purdue University · <sup>2</sup>Terry College of Business, University of Georgia[m
+ [m
+ </div>[m
+ [m
+[36m@@ -27,11 +27,11 @@[m
+ ## Highlights[m
+ [m
+ - **3× lower FID with 10× fewer steps than HRF2 on MNIST.** CCVFM reaches FID<sub>50k</sub> **0.75 at 51 NFE**. The best HRF2 result is 2.57 at 500 NFE.[m
+[31m-- **Same network, better source.** On ImageNet-32 we keep HRF2's U-Net and FID protocol and change only the source distribution. FID drops by **38% at 11 NFE** and **24% at 21 NFE**.[m
+[31m-- **The source is what matters.** In a controlled MNIST ablation (same network, same 80k-step budget), only the inner-flow source changes. The coreset surrogate reaches FID<sub>50k</sub> **2.60 ± 0.22** at 11 NFE; the Gaussian source reaches **10.74**.[m
+[31m-- **Stage I is cheap.** The coreset surrogate of CIFAR-10 (K = 10,000) takes **95 s on one GPU**, and ImageNet-32 (1.28M images) takes **6 min**. That is under 0.5% of the training budget.[m
+[32m+[m[32m- **Same network, informed source.** On ImageNet-32, with HRF2's U-Net and FID protocol, FID drops by **38% at 11 NFE** and **24% at 21 NFE**.[m
+[32m+[m[32m- **A direct MNIST comparison.** With the same network and the same 80k-step budget, CCVFM reaches FID<sub>50k</sub> **2.60 ± 0.22** at 11 NFE; a Gaussian-source run reaches **10.74**.[m
+[32m+[m[32m- **Stage I is cheap.** The coreset surrogate of CIFAR-10 (K = 10,000) takes **95 s on one GPU**, and ImageNet-32 (1.28M images) takes **6 min**. That is under 1% of the training budget.[m
+ - **Stage II needs no network.** Sampling from the surrogate is a categorical draw plus a Gaussian draw, in closed form.[m
+[31m-- **It comes with theory.** The source-to-target transport cost CCVFM's network must learn shrinks as $O(K^{-1/d})$. With a Gaussian source this cost stays bounded below by a constant, however large K or n is.[m
+[32m+[m[32m- **It comes with theory.** The source-to-target transport cost CCVFM's network must learn shrinks as $O(K^{-1/d})$ under the Stage-I compression assumption. With a Gaussian source this cost stays bounded below by a constant, however large K or n is.[m
+ - **The results reproduce.** Five sampling seeds give MNIST FID<sub>50k</sub> **0.772 ± 0.011**. Retraining from scratch with a new seed gives **0.747**.[m
+ [m
+ <table>[m
+[36m@@ -54,9 +54,9 @@[m [mA flow-matching model regresses the velocity $V = X_1 - X_0$ of the straight pat[m
+ [m
+ | | What happens | Learned parameters |[m
+ |---|---|---|[m
+[31m-| **Stage I: coreset** | An entropic-Sinkhorn coreset compresses the data into $K$ weighted atoms. Each atom is lifted to a Gaussian by closed-form probabilistic PCA, giving the surrogate $\tilde\rho_1=\sum_k w_k\,\mathcal N(\mu_k, L_kL_k^\top+\sigma^2 I)$. | none (closed form, seconds to minutes) |[m
+[32m+[m[32m| **Stage I: coreset** | An entropic-Sinkhorn coreset compresses the data into $K$ weighted atoms. Each atom is lifted to a Gaussian with a low-rank-plus-diagonal covariance, giving the surrogate $\tilde\rho_1=\sum_k w_k\,\mathcal N(\mu_k,\Sigma_k)$. | no network (seconds to minutes) |[m
+ | **Stage II: closed-form velocity law** | Plugging $\tilde\rho_1$ into $\pi(v\mid x_t,t)\propto\rho_0(x_t-tv)\,\rho_1(x_t+(1-t)v)$ gives an explicit $K$-component Gaussian mixture $\tilde\pi(v\mid x_t,t)$. At $t=0$ it is simply $\tilde\rho_1(x_0+v)$. | none (one categorical draw plus one Gaussian draw) |[m
+[31m-| **Stage III: correction flow** | A network $f_\theta(v,\tau,x_t,t)$ is trained by flow matching in velocity space. The source is $V_0\sim\tilde\pi(\cdot\mid x_t,t)$, drawn from the component that owns each data point (data-anchored coupling), and the target is $V_1=X_1-X_0$. The network therefore learns a small surrogate-to-target residual. | the correction network |[m
+[32m+[m[32m| **Stage III: correction flow** | A network $f_\theta(v,\tau,x_t,t)$ is trained by flow matching in velocity space. The source $V_0$ is drawn through the mixture representation of $\tilde\pi(\cdot\mid x_t,t)$ (a component label, then a Gaussian), and the target is $V_1=X_1-X_0$. The network therefore learns a small surrogate-to-target residual. | the correction network |[m
+ [m
+ **Sampling ($J=1$, the recommended setting).** Draw $x_0\sim\mathcal N(0,I)$ and $v\sim\tilde\pi(\cdot\mid x_0,0)$. Then take $L$ Euler steps $v\leftarrow v+\tfrac1L f_\theta(v,\ell/L,x_0,0)$ and return $x_0+v$. The total cost is NFE $=L+1$, counting the closed-form draw as one.[m
+ [m
+[36m@@ -65,8 +65,8 @@[m [mA flow-matching model regresses the velocity $V = X_1 - X_0$ of the straight pat[m
+ [m
+ Define the correction task at the generation boundary as $D(Q)=\big(\mathbb E_{X_0}W_2^2(Q(\cdot\mid X_0,0),\,\pi(\cdot\mid X_0,0))\big)^{1/2}$.[m
+ [m
+[31m-1. **Transport-task reduction.** $D(Q_{\mathrm{CCVFM}})=W_2(\rho_1,\tilde\rho_1)\le C_Q K^{-1/d}$ under the Stage-I compression assumption. For the Gaussian source, $D(Q_{\mathrm{HRF2}})\ge\sqrt d\,(\sqrt{\sigma_1^2+1}-1)$, a positive constant in $K$ and $n$. The Euler budget needed to reach a given accuracy scales with $D(Q)^2$.[m
+[31m-2. **Training-target scale.** With the surrogate source, the conditional second moment of the regression target $V_1-V_0$ depends on within-mode quantities only. With an independent Gaussian source it pays the cross-mode diameter plus $d$. The data-anchored coupling keeps the source marginal exactly $\tilde\pi(\cdot\mid C)$, so training and inference use the same source.[m
+[32m+[m[32m1. **Transport-task reduction.** $D(Q_{\mathrm{CCVFM}})=W_2(\rho_1,\tilde\rho_1)\le C_Q K^{-1/d}$ under the Stage-I compression assumption. For the Gaussian source, $D(Q_{\mathrm{HRF2}})\ge\sqrt d\,(\sqrt{\sigma_1^2+1}-1)$, a positive constant in $K$ and $n$. Under flattening conditions on the learned field, the Euler budget needed to reach a given accuracy scales with $D(Q)^2$.[m
+[32m+[m[32m2. **Training-target scale.** For $V_0\sim\tilde\pi(\cdot\mid C)$ drawn independently of $V_1$ given $C$, $\mathbb E[\|V_1-V_0\|^2\mid C]=\mathrm{tr}\,\Sigma_\pi+\mathrm{tr}\,\Sigma_{\mathrm{sur}}+\|\mu_\pi-\mu_{\mathrm{sur}}\|^2$. For an independent Gaussian source it equals $\mathrm{tr}\,\Sigma_\pi+\|\mu_\pi\|^2+d$, which pays the cross-mode spread plus $d$. A similar conditioning argument applies to other designs of the label draw.[m
+ [m
+ </details>[m
+ [m
+[36m@@ -100,7 +100,7 @@[m [mfor step in range(5000):[m
+ x_gen = sample(net, gmm, 10_000, L=4)          # 4 network evaluations[m
+ ```[m
+ [m
+[31m-`ccvfm_loss(..., source="gaussian")` trains the HRF2 baseline with the same network, which makes controlled comparisons one argument away. The package is dimension-agnostic, and the low-rank covariance keeps every operation $O(Kdr)$.[m
+[32m+[m[32m`ccvfm_loss(..., source="gaussian")` trains the HRF2 baseline with the same network, which makes comparisons one argument away. The package is dimension-agnostic, and the low-rank covariance keeps every operation $O(Kdr)$.[m
+ [m
+ ### Two runnable examples[m
+ [m
+[36m@@ -176,18 +176,18 @@[m [mAll FIDs use InceptionV3 pool features. FID<sub>50k</sub> compares 50k samples a[m
+ [m
+ <sub>Baselines are quoted from their papers (MNIST and ImageNet-32 HRF2/RF rows from HRF2, Table 7). The CIFAR-10 and CelebA baselines are shown for context and differ in protocol or architecture. See the paper for the complete tables.</sub>[m
+ [m
+[31m-### What the surrogate source buys[m
+[32m+[m[32m### CCVFM vs. a Gaussian source on MNIST[m
+ [m
+ <p align="center"><img src="assets/source_ablation.png" width="60%"></p>[m
+ [m
+[31m-To isolate the contribution of the source, we train the same correction U-Net on MNIST with the same budget (80k steps, surrogate K = 1000, r = 30). The only change is where the inner flow starts: the coreset surrogate (CCVFM) or $\mathcal N(0,I)$ (HRF2). Everything else is identical.[m
+[32m+[m[32mWe train the same correction U-Net on MNIST with the same budget (80k steps, surrogate K = 1000, r = 30), using the CCVFM recipe or a Gaussian inner source $\mathcal N(0,I)$ (HRF2).[m
+ [m
+[31m-| Source of the inner flow | FID<sub>50k</sub> @ 6 NFE | @ 11 NFE | @ 21 NFE |[m
+[32m+[m[32m| Method | FID<sub>50k</sub> @ 6 NFE | @ 11 NFE | @ 21 NFE |[m
+ |---|---:|---:|---:|[m
+ | Gaussian $\mathcal N(0,I)$ (HRF2), 2 seeds | 17.17 | 10.74 | 9.94 |[m
+[31m-| **Coreset surrogate (CCVFM)**, 5 seeds | **3.25 ± 0.31** | **2.60 ± 0.22** | **2.86 ± 0.36** |[m
+[32m+[m[32m| **CCVFM**, 5 seeds | **3.25 ± 0.31** | **2.60 ± 0.22** | **2.86 ± 0.36** |[m
+ [m
+[31m-The theory predicts this gap: with a Gaussian source the regression target must absorb the whole noise-to-data transport, while the surrogate source leaves only a surrogate-to-target residual (see the Theorem 3 check below). Raw numbers: [`results/mnist_source_ablation.csv`](results/mnist_source_ablation.csv).[m
+[32m+[m[32mRaw numbers: [`results/mnist_source_ablation.csv`](results/mnist_source_ablation.csv).[m
+ [m
+ ---[m
+ [m
+[36m@@ -209,7 +209,7 @@[m [mThese experiments were added in our public responses to the NeurIPS 2026 reviewe[m
+ [m
+ Measurements and theory agree to 0.03–0.3%. On the image benchmarks the surrogate source shrinks the regression target by 16× (MNIST) and 4.5× (CIFAR-10); on the low-dimensional toys the gain is small, consistent with the dimension-proportional Gaussian term $d$ mattering in high ambient dimension.[m
+ [m
+[31m-**The low-rank covariance saturates around r = 50.** MNIST, K = 1000, 80k steps, FID<sub>50k</sub> (mean ± std over 3 training seeds; 5 for r = 30). The full-rank arm uses $\sigma^2=0$, $L=U\Lambda^{1/2}$.[m
+[32m+[m[32m**Returns diminish beyond r ≈ 30–50.** MNIST, K = 1000, 80k steps, FID<sub>50k</sub> (mean ± std over 3 training seeds; 5 for r = 30). The full-rank arm uses $\sigma^2=0$, $L=U\Lambda^{1/2}$.[m
+ [m
+ | r | 6 NFE | 11 NFE | 21 NFE |[m
+ |---:|---:|---:|---:|[m
+[36m@@ -235,7 +235,7 @@[m [mMeasurements and theory agree to 0.03–0.3%. On the image benchmarks the surrog[m
+ [m
+ | Dataset | n | K | r | Wall-clock | Peak GPU memory |[m
+ |---|---:|---:|---:|---:|---:|[m
+[31m-| MNIST | 60k | 2,000 | 50 | 10 s | 1.6 GB |[m
+[32m+[m[32m| MNIST | 60k | 2,000 | 30 | 10 s | 1.6 GB |[m
+ | CIFAR-10 | 50k | 10,000 | 80 | 95 s | 6.6 GB |[m
+ | ImageNet-32 | 1.28M | 5,000 | 60 | 350 s | 22.9 GB |[m
+ [m
+[36m@@ -266,7 +266,7 @@[m [mEvery script accepts `--smoke` for a few-minute end-to-end check. Datasets (torc[m
+ ccvfm/          small, documented, dimension-agnostic implementation (the thing to import)[m
+   coreset.py      Stage I   Sinkhorn coreset + closed-form PPCA lift[m
+   gmm.py          low-rank GMM with Woodbury densities / sampling[m
+[31m-  velocity.py     Stage II  closed-form conditional velocity law, data-anchored coupling[m
+[32m+[m[32m  velocity.py     Stage II  closed-form conditional velocity law and source draws[m
+   flow.py         Stage III loss + nested J x L sampler[m
+   nets.py         reference MLP / U-Net correction networks, EMA[m
+   metrics.py      sliced W2, Inception FID[m
+[1mdiff --git a/docs/index.html b/docs/index.html[m
+[1mindex 9e8f018..ce21296 100644[m
+[1m--- a/docs/index.html[m
+[1m+++ b/docs/index.html[m
+[36m@@ -241,10 +241,10 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <div class="authors">[m
+ <div class="names">[m
+ <a href="mailto:she8@purdue.edu">Zihua She</a>[m
+[31m-<a href="mailto:jianxi@purdue.edu">Jianxi Su</a>[m
+[32m+[m[32m<a href="mailto:jianxi.su@uga.edu">Jianxi Su</a>[m
+ <a href="mailto:wangxiao@purdue.edu">Xiao Wang</a>[m
+ </div>[m
+[31m-<div class="affil">Department of Statistics, Purdue University</div>[m
+[32m+[m[32m<div class="affil">Purdue University · University of Georgia</div>[m
+ </div>[m
+ <div class="venue">NeurIPS 2026</div>[m
+ <nav class="buttons" aria-label="Paper links">[m
+[36m@@ -273,7 +273,7 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <div class="stage s1">[m
+ <span class="num">STAGE I · CORESET</span>[m
+ <h3>Compress the data, then lift to a mixture</h3>[m
+[31m-<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Closed-form probabilistic PCA lifts each atom to a Gaussian <i>N</i>(μ<sub>k</sub>, L<sub>k</sub>L<sub>k</sub><sup>⊤</sup>+σ²I), giving the surrogate ρ̃<sub>1</sub>.</p>[m
+[32m+[m[32m<p>An entropic-Sinkhorn coreset summarises the data by <i>K</i> weighted atoms. Each atom is lifted to a Gaussian <i>N</i>(μ<sub>k</sub>, Σ<sub>k</sub>) with a low-rank-plus-diagonal covariance, giving the surrogate ρ̃<sub>1</sub>.</p>[m
+ <span class="cost">No network · 95 s for CIFAR-10 at K = 10,000</span>[m
+ </div>[m
+ <div class="stage s2">[m
+[36m@@ -285,7 +285,7 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <div class="stage s3">[m
+ <span class="num">STAGE III · LEARNED CORRECTION</span>[m
+ <h3>Learn only the residual</h3>[m
+[31m-<p>A correction network is trained by flow matching in velocity space, with the source drawn from π̃ and anchored to the mixture component of each training image. It refines a surrogate-to-target residual, not a noise-to-data map.</p>[m
+[32m+[m[32m<p>A correction network is trained by flow matching in velocity space, with the source drawn through the mixture representation of π̃. It refines a surrogate-to-target residual, not a noise-to-data map.</p>[m
+ <span class="cost">The only learned part · L Euler steps at sampling</span>[m
+ </div>[m
+ </div>[m
+[36m@@ -309,25 +309,25 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ </div>[m
+ <figure>[m
+ <div class="plate"><img src="static/fid_vs_nfe.png" alt="FID versus number of function evaluations. Left: MNIST, CCVFM reaches 0.75 at 51 NFE while HRF2 reaches 2.57 at 500 NFE. Right: ImageNet-32, CCVFM is 38 percent and 24 percent lower than HRF2 at 11 and 21 NFE." loading="lazy"></div>[m
+[31m-<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2 and only the source changes: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>[m
+[32m+[m[32m<figcaption><b>Fewer steps for the same quality.</b> On MNIST, CCVFM reaches FID<sub>50k</sub> 0.75 at 51 NFE; the best HRF2 result is 2.57 at 500 NFE. On ImageNet-32 the U-Net, data and protocol match HRF2: FID drops by 38% at 11 NFE and 24% at 21 NFE.</figcaption>[m
+ </figure>[m
+ </section>[m
+ [m
+ <section aria-labelledby="ablation">[m
+ <span class="label">Ablation</span>[m
+[31m-<h2 id="ablation">The source is what matters</h2>[m
+[31m-<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST. The only change is where the inner flow starts.</p>[m
+[32m+[m[32m<h2 id="ablation">CCVFM vs. a Gaussian source</h2>[m
+[32m+[m[32m<p class="prose">Same correction U-Net, same Stage III budget (80k steps) on MNIST, using the CCVFM recipe or a Gaussian inner source.</p>[m
+ <div class="two">[m
+ <figure><div class="plate"><img src="static/source_ablation.png" alt="FID versus NFE on MNIST for the coreset surrogate source and the Gaussian source" loading="lazy"></div></figure>[m
+ <div class="tablewrap">[m
+ <table>[m
+[31m-<thead><tr><th>Inner-flow source</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>[m
+[32m+[m[32m<thead><tr><th>Method</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>[m
+ <tbody>[m
+ <tr><td>Gaussian N(0, I) (HRF2), 2 seeds</td><td>17.17</td><td>10.74</td><td>9.94</td></tr>[m
+[31m-<tr class="ours"><td>Coreset surrogate (CCVFM), 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>[m
+[32m+[m[32m<tr class="ours"><td>CCVFM, 5 seeds</td><td>3.25 ± 0.31</td><td>2.60 ± 0.22</td><td>2.86 ± 0.36</td></tr>[m
+ </tbody>[m
+ </table>[m
+[31m-<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better. Theorem 3 explains the gap: the surrogate source leaves only a surrogate-to-target residual to learn (see the checks below).</p>[m
+[32m+[m[32m<p style="font-size:15.5px;color:var(--muted);margin-top:14px">FID<sub>50k</sub>, lower is better.</p>[m
+ </div>[m
+ </div>[m
+ <figure>[m
+[36m@@ -358,7 +358,7 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <p class="prose" style="font-size:16px;color:var(--muted)">Monte-Carlo estimates of E‖V<sub>1</sub>−V<sub>0</sub>‖² at t = 0 agree with both closed forms to 0.03–0.3%. On images the surrogate source shrinks the regression target 16× (MNIST) and 4.5× (CIFAR-10).</p>[m
+ <div class="two">[m
+ <div style="display:flex;flex-direction:column;gap:12px">[m
+[31m-<h3>The low-rank covariance saturates near r = 50</h3>[m
+[32m+[m[32m<h3>Returns diminish beyond r ≈ 30–50</h3>[m
+ <div class="tablewrap">[m
+ <table style="min-width:360px">[m
+ <thead><tr><th>r</th><th>6 NFE</th><th>11 NFE</th><th>21 NFE</th></tr></thead>[m
+[36m@@ -402,8 +402,8 @@[m [mfooter{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute[m
+ <h2 id="theory">Why a coreset source helps</h2>[m
+ <ol class="claims">[m
+ <li><b>Transport-task reduction.</b> At the generation boundary, the task left to the correction network is exactly the surrogate gap W<sub>2</sub>(ρ<sub>1</sub>, ρ̃<sub>1</sub>), which is O(K<sup>−1/d</sup>) under the Stage I compression assumption. With a Gaussian source the same task is bounded below by √d(√(σ<sub>1</sub>²+1)−1), a constant however large K or n is.</li>[m
+[31m-<li><b>Fewer Euler steps.</b> The number of Euler steps needed for a given discretisation error scales with the square of that task size, so a smaller surrogate gap directly buys lower NFE.</li>[m
+[31m-<li><b>A smaller regression target.</b> The conditional second moment of V<sub>1</sub>−V<sub>0</sub> under the surrogate source depends on within-mode quantities; the Gaussian source pays the cross-mode diameter plus d.</li>[m
+[32m+[m[32m<li><b>Fewer Euler steps.</b> Under flattening conditions on the learned field, the number of Euler steps needed for a given discretisation error scales with the square of that task size.</li>[m
+[32m+[m[32m<li><b>A smaller regression target.</b> Theorem 3 gives the exact conditional second moment of V<sub>1</sub>−V<sub>0</sub> for both sources; the independent Gaussian source pays the cross-mode spread plus d.</li>[m
+ </ol>[m
+ </section>[m
+ [m
+[1mdiff --git a/experiments/README.md b/experiments/README.md[m
+[1mindex 6f47b62..ff9abed 100644[m
+[1m--- a/experiments/README.md[m
+[1m+++ b/experiments/README.md[m
+[36m@@ -44,9 +44,9 @@[m [mtrained in two jobs: 400k steps, then a continuation.[m
+ ```bash[m
+ python cifar10_pixel_hrf2_ccvfm.py --tag pp --K 10000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 128 --unet-base 128 --unet-attention "16" \[m
+[31m-    --unet-res-blocks 2 --coupling-mode general_t[m
+[32m+[m[32m    --unet-res-blocks 2[m
+ python resume_cifar10_pixel_hrf2_ccvfm.py --start-step 400000 --train-steps 720000 \[m
+[31m-    --bs 128 --unet-base 128 --unet-attention "16" --unet-res-blocks 2 --coupling-mode general_t[m
+[32m+[m[32m    --bs 128 --unet-base 128 --unet-attention "16" --unet-res-blocks 2[m
+ ```[m
+ Output: `cifar10_planS_outputs_pp/planSpp_results_step720000.csv`. The same[m
+ network at 400k steps gives 7.04 (`../results/cifar10_k10000_step400000.csv`).[m
+[36m@@ -57,7 +57,7 @@[m [mnetwork at 400k steps gives 7.04 (`../results/cifar10_k10000_step400000.csv`).[m
+ ```bash[m
+ python imagenet32_pixel_hrf2_ccvfm.py --tag t_hrf2 --K 5000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 256 --base-lr 1.4e-4 --warmup-steps 5000 \[m
+[31m-    --n-gen 50000 --coupling-mode general_t[m
+[32m+[m[32m    --n-gen 50000[m
+ ```[m
+ Takes about 25 h. Our run crashed after its 300k checkpoint and was finished with[m
+ `resume_imagenet32_pixel_hrf2_ccvfm.py --start_step 300000 --end_step 400000`,[m
+[36m@@ -90,9 +90,9 @@[m [mStage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.[m
+ [m
+ | file | role |[m
+ |---|---|[m
+[31m-| `mnist_pixel_gmm_core.py` | Stage I (`ems_coreset_gpu`, `learn_lowrank_cov_fast`), `GMMState`, Stage II sampler, data-anchored coupling at t = 0, MNIST FID |[m
+[32m+[m[32m| `mnist_pixel_gmm_core.py` | Stage I (`ems_coreset_gpu`, `learn_lowrank_cov_fast`), `GMMState`, Stage II sampler, Stage III source draw at t = 0, MNIST FID |[m
+ | `mnist_pixel_ccvfm.py` | MNIST headline trainer and evaluator |[m
+[31m-| `cifar10_sdvae_latent_ccvfm.py` | general-t closed-form sampler and coupling (`sample_velocity_general_t`, `coupled_sample_general_t`), EMA and LR schedule helpers |[m
+[32m+[m[32m| `cifar10_sdvae_latent_ccvfm.py` | general-t closed-form sampler and source draw, EMA and LR schedule helpers |[m
+ | `cifar10_pixel_hrf2_ccvfm.py`, `resume_cifar10_pixel_hrf2_ccvfm.py`, `eval_cifar10_checkpoint.py` | CIFAR-10 |[m
+ | `imagenet32_pixel_hrf2_ccvfm.py`, `resume_imagenet32_pixel_hrf2_ccvfm.py` | ImageNet-32 |[m
+ | `celebahq_dcae_unet.py` | CelebA-HQ loading and DC-AE encode/decode (also a U-Net variant) |[m
+[36m@@ -104,5 +104,4 @@[m [mStage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.[m
+ **Implementation notes.**[m
+ [m
+ - In these scripts the per-component covariance $L_kL_k^\top+\sigma^2 I$ is initialised by randomized SVD and refined by a few hundred Adam steps on the responsibility-weighted Gaussian likelihood (`learn_lowrank_cov_fast`). The `ccvfm` package uses the closed-form PPCA estimator, which is the same model without the refinement.[m
+[31m-- The Stage III source $V_0$ is drawn from the surrogate component chosen by the posterior of the training image $x_1$ (`coupled_sample_gpu` / `coupled_sample_general_t`). Its marginal is the surrogate law $\tilde\pi(\cdot\mid x_t,t)$ used at inference.[m
+ - The CIFAR-10 and ImageNet-32 CSVs label NFE as $J\cdot L$ (network evaluations). The paper adds one for the closed-form Stage II draw, so L = 50 is reported as 51 NFE.[m
+[1mdiff --git a/slurm/cifar10_resume.sbatch b/slurm/cifar10_resume.sbatch[m
+[1mindex fbf17aa..2de1232 100644[m
+[1m--- a/slurm/cifar10_resume.sbatch[m
+[1m+++ b/slurm/cifar10_resume.sbatch[m
+[36m@@ -19,8 +19,7 @@[m [mcd "${SLURM_SUBMIT_DIR:-.}"[m
+ cd experiments[m
+ python resume_cifar10_pixel_hrf2_ccvfm.py \[m
+     --start-step 400000 --train-steps 720000 --bs 128 \[m
+[31m-    --unet-base 128 --unet-attention "16" --unet-res-blocks 2 \[m
+[31m-    --coupling-mode general_t[m
+[32m+[m[32m    --unet-base 128 --unet-attention "16" --unet-res-blocks 2[m
+ # -> cifar10_planS_outputs_pp/planSpp_results_step720000.csv  (FID50k 6.35 @ L=50)[m
+ # Re-evaluate any milestone later with:[m
+ #   CCVFM_CKPT_TAG=step720000 python eval_cifar10_checkpoint.py[m
+[1mdiff --git a/slurm/cifar10_train.sbatch b/slurm/cifar10_train.sbatch[m
+[1mindex c64fbdc..ed6010c 100644[m
+[1m--- a/slurm/cifar10_train.sbatch[m
+[1m+++ b/slurm/cifar10_train.sbatch[m
+[36m@@ -20,6 +20,5 @@[m [mcd experiments[m
+ python cifar10_pixel_hrf2_ccvfm.py --tag pp \[m
+     --K 10000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 128 \[m
+[31m-    --unet-base 128 --unet-attention "16" --unet-res-blocks 2 \[m
+[31m-    --coupling-mode general_t[m
+[32m+[m[32m    --unet-base 128 --unet-attention "16" --unet-res-blocks 2[m
+ # -> cifar10_planS_outputs_pp/{gmm_k10000.pt, unet.pt, unet_ema.pt}[m
+[1mdiff --git a/slurm/imagenet32.sbatch b/slurm/imagenet32.sbatch[m
+[1mindex 22e4285..b15e15d 100644[m
+[1m--- a/slurm/imagenet32.sbatch[m
+[1m+++ b/slurm/imagenet32.sbatch[m
+[36m@@ -21,6 +21,5 @@[m [mpython imagenet32_pixel_hrf2_ccvfm.py --tag t_hrf2 \[m
+     --K 5000 --rank 80 --cov-nit 1500 \[m
+     --train-steps 400000 --bs 256 \[m
+     --base-lr 1.4e-4 --warmup-steps 5000 \[m
+[31m-    --n-gen 50000 \[m
+[31m-    --coupling-mode general_t[m
+[32m+[m[32m    --n-gen 50000[m
+ # -> imagenet32_planT_outputs_t_hrf2/planT_results_t_hrf2.csv  (FID50k 8.76 @ L=50)[m

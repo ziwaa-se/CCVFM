@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ccvfm"
-version = "1.0.0"
+version = "1.2.0"
 description = "Coreset-Induced Conditional Velocity Flow Matching"
 readme = "README.md"
 license = {text = "MIT"}

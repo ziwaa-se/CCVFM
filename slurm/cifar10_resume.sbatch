@@ -19,8 +19,7 @@ cd "${SLURM_SUBMIT_DIR:-.}"
 cd experiments
 python resume_cifar10_pixel_hrf2_ccvfm.py \
     --start-step 400000 --train-steps 720000 --bs 128 \
-    --unet-base 128 --unet-attention "16" --unet-res-blocks 2 \
-    --coupling-mode general_t
+    --unet-base 128 --unet-attention "16" --unet-res-blocks 2
 # -> cifar10_planS_outputs_pp/planSpp_results_step720000.csv  (FID50k 6.35 @ L=50)
 # Re-evaluate any milestone later with:
 #   CCVFM_CKPT_TAG=step720000 python eval_cifar10_checkpoint.py
