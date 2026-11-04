@@ -46,7 +46,7 @@ img{max-width:100%;height:auto;display:block}
 a{color:var(--link);text-underline-offset:3px}
 a:focus-visible,button:focus-visible{outline:2px solid var(--s2);outline-offset:3px;border-radius:4px}
 .wrap{max-width:960px;margin-inline:auto}
-.prose{max-width:68ch}
+.prose{max-width:none}
 h2{font-family:var(--serif);font-weight:700;font-size:30px;line-height:1.2;margin:0;text-wrap:balance}
 h3{font-family:var(--serif);font-weight:600;font-size:20px;line-height:1.3;margin:0}
 p{margin:0}
@@ -61,7 +61,7 @@ header.hero{padding-block:48px 40px;display:flex;flex-direction:column;align-ite
 .amark{width:128px;height:auto}
 .wordmark{font-family:var(--display);font-weight:700;font-size:clamp(46px,8vw,68px);letter-spacing:.04em;line-height:1}
 .wordmark .c1{color:var(--s1-mark)} .wordmark .c2{color:var(--s2-mark)} .wordmark .c3{color:var(--s3-mark)}
-.fullname{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3.4vw,34px);line-height:1.2;max-width:26ch;text-wrap:balance;margin:0}
+.fullname{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3.4vw,34px);line-height:1.2;text-wrap:balance;margin:0}
 .fullname .k1{color:var(--s1)} .fullname .k2{color:var(--s2)} .fullname .k3{color:var(--s3)}
 .authors{display:flex;flex-direction:column;gap:4px;font-size:18px}
 .authors .names{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 18px}
@@ -79,9 +79,9 @@ header.hero{padding-block:48px 40px;display:flex;flex-direction:column;align-ite
 /* figures */
 figure{margin:0;display:flex;flex-direction:column;gap:12px}
 .plate{background:var(--plate);border-radius:10px;padding:clamp(8px,2vw,18px);border:1px solid var(--rule)}
-figcaption{font-size:15.5px;color:var(--muted);line-height:1.5;max-width:80ch}
+figcaption{font-size:15.5px;color:var(--muted);line-height:1.5}
 figcaption b{color:var(--ink);font-weight:600}
-.tldr{font-size:21px;line-height:1.5;max-width:60ch}
+.tldr{font-size:21px;line-height:1.5}
 
 /* stages */
 .stagegrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
@@ -111,7 +111,7 @@ tr.ours td{font-weight:600}
 .two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:start}
 
 /* theory */
-.claims{display:flex;flex-direction:column;gap:14px;max-width:72ch}
+.claims{display:flex;flex-direction:column;gap:14px}
 .claims li{margin:0}
 ol.claims{padding-left:1.2em}
 
