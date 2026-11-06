@@ -103,5 +103,6 @@ Stage-I cost) are in [`rebuttal/`](rebuttal/), with their own README.
 
 **Implementation notes.**
 
+- The Stage III label is anchored to the training image $x_1$: it is drawn with probabilities $\propto w_b\,\mathcal N(x_1;\mu_b,\Sigma_b)$ (`coupled_sample_gpu` / `coupled_sample_general_t`). Theoretical properties of related anchored couplings are analyzed in Wang, She & Su, *Optimal Estimation for Flow Matching via Coreset Induced Coupling* (submitted to the Annals of Statistics).
 - In these scripts the per-component covariance $L_kL_k^\top+\sigma^2 I$ is initialised by randomized SVD and refined by a few hundred Adam steps on the responsibility-weighted Gaussian likelihood (`learn_lowrank_cov_fast`). The `ccvfm` package uses the closed-form PPCA estimator, which is the same model without the refinement.
 - The CIFAR-10 and ImageNet-32 CSVs label NFE as $J\cdot L$ (network evaluations). The paper adds one for the closed-form Stage II draw, so L = 50 is reported as 51 NFE.

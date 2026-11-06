@@ -285,7 +285,7 @@ footer{border-top:1px solid var(--rule);padding-block:28px 48px;color:var(--mute
 <div class="stage s3">
 <span class="num">STAGE III · LEARNED CORRECTION</span>
 <h3>Learn only the residual</h3>
-<p>A correction network is trained by flow matching in velocity space, with the source drawn through the mixture representation of π̃. It refines a surrogate-to-target residual, not a noise-to-data map.</p>
+<p>A correction network is trained by flow matching in velocity space, with the source drawn through the mixture representation of π̃; in our experiments the label is anchored to the training image. It refines a surrogate-to-target residual, not a noise-to-data map.</p>
 <span class="cost">The only learned part · L Euler steps at sampling</span>
 </div>
 </div>
